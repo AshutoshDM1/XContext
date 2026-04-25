@@ -1,0 +1,38 @@
+{
+  "name": "backend",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "bun build index.ts --outdir dist",
+    "dev": "bun --hot src/index.ts",
+    "start": "bun run dist/src/index.js",
+    "format": "bunx prettier . --write --config ../.prettierrc.json --ignore-path ../.prettierignore",
+    "format:check": "bunx prettier . --check --config ../.prettierrc.json --ignore-path ../.prettierignore",
+    "gen": "drizzle-kit generate",
+    "push": "drizzle-kit push",
+    "pull": "drizzle-kit pull",
+    "migrate": "drizzle-kit migrate",
+    "studio": "drizzle-kit studio",
+    "seed": "bun run src/db/user.seed.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.6.0",
+    "drizzle-kit": "^0.31.10",
+    "prettier": "^3.6.2",
+    "tsx": "^4.21.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "express": "^5.2.1"
+  }
+}
