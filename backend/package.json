@@ -4,9 +4,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "bun build src/index.ts --outdir dist/src",
+    "build": "bunx tsc -p tsconfig.build.json",
     "dev": "bun --hot src/index.ts",
-    "start": "bun run dist/src/index.js",
+    "start": "bun run dist/index.js",
     "format": "bunx prettier . --write --config ../.prettierrc.json --ignore-path ../.prettierignore",
     "format:check": "bunx prettier . --check --config ../.prettierrc.json --ignore-path ../.prettierignore",
     "gen": "drizzle-kit generate",
