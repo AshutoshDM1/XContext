@@ -1,0 +1,13 @@
+{
+  "name": "xcontext",
+  "private": true,
+  "scripts": {
+    "prepare": "husky install",
+    "format:check": "bun run --cwd backend format:check && bun run --cwd frontend format:check",
+    "format": "bun run --cwd backend format && bun run --cwd frontend format"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}
+

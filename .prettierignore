@@ -1,0 +1,12 @@
+**/node_modules/**
+**/dist/**
+**/build/**
+**/out/**
+**/coverage/**
+**/.next/**
+**/.turbo/**
+**/.vercel/**
+**/.bun/**
+**/drizzle/**
+**/*.min.*
+
