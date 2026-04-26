@@ -1,9 +1,29 @@
+import 'dotenv/config';
 import express from 'express';
 import router from './router/router';
+import { toNodeHandler } from 'better-auth/node';
+import { auth } from './utils/auth';
+import cors from 'cors';
 const port = process.env.PORT || 3000;
 
 const app = express();
+
+const corsOptions = {
+  origin: 'http://localhost:3000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'X-CSRF-Token',
+    'X-Better-Auth-CSRF',
+  ],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
+app.all('/api/auth/{*any}', toNodeHandler(auth));
 
 app.use('/api/v1', router);
 
