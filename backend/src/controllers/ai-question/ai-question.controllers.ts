@@ -13,25 +13,27 @@ Requirements:
 - Do not include the answer, hints, or explanations.
 - Output plain text only: no markdown headings, no quotes wrapping the whole question.`;
 
-const DEFAULT_MODEL = 'google/gemini-3.1-flash-live-preview';
+const DEFAULT_MODEL = 'google/gemini-2.5-flash';
+
+const apiKey = process.env.AI_GATEWAY_API_KEY;
+if (!apiKey) {
+  throw new Error('AI Gateway is not configured (AI_GATEWAY_API_KEY).');
+}
 
 export const getAiQuestionController = asyncHandler(async (req: Request, res: Response) => {
-  const apiKey = process.env.AI_GATEWAY_API_KEY;
-  if (!apiKey) {
-    res.status(503).json({ message: 'AI Gateway is not configured (AI_GATEWAY_API_KEY).' });
+  const { topic } = getAiQuestionSchema.parse(req.body);
+
+  try {
+    const gateway = createGateway({ apiKey });
+    const { text } = await generateText({
+      model: gateway(DEFAULT_MODEL),
+      system: JS_TS_QUESTION_SYSTEM,
+      prompt: `Topic: ${topic}`,
+    });
+    res.json({ question: text.trim() });
+  } catch (error) {
+    console.error(error);
+    res.status(503).json({ message: 'Failed to generate question' });
     return;
   }
-
-  const { topic } = getAiQuestionSchema.parse(req.body);
-  const modelId = process.env.AI_QUESTION_MODEL ?? DEFAULT_MODEL;
-
-  const gateway = createGateway({ apiKey });
-
-  const { text } = await generateText({
-    model: gateway(modelId),
-    system: JS_TS_QUESTION_SYSTEM,
-    prompt: `Topic: ${topic}`,
-  });
-
-  res.json({ question: text.trim() });
 });

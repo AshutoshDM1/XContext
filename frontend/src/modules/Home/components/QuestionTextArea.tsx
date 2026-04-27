@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useAiQuestion } from '../hooks/use-ai-question';
+import { useAiQuestion } from '../../../hooks/use-ai-question';
 
 const PRESETS = ['Closures', 'Generics', 'Async / await', 'Type guards', 'Modules'] as const;
 
@@ -38,7 +38,7 @@ export function QuestionTextArea() {
 
       <div
         className={cn(
-          'overflow-hidden rounded-2xl border border-border/80 bg-card/80 shadow-sm',
+          'rounded-2xl overflow-hidden border border-border/80 bg-card/80 shadow-sm',
           'ring-1 ring-white/5 dark:bg-[#141414] dark:ring-white/6',
         )}
       >
@@ -124,7 +124,7 @@ export function QuestionTextArea() {
               reset();
             }}
             className={cn(
-              'rounded-full border border-border/80 bg-background/60 px-3 py-1.5 text-xs text-muted-foreground',
+              'rounded-full border border-border/80 bg-muted/50 cursor-pointer px-3 py-1.5 text-xs text-muted-foreground',
               'transition-colors hover:border-border hover:bg-muted/50 hover:text-foreground',
             )}
           >
