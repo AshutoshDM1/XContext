@@ -2,8 +2,11 @@ import type { Metadata } from 'next';
 import { JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
+import { QueryProvider } from '@/components/providers/query-provider';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
+import Navbar from '@/shared/Navbar/Navbar';
+import Footer from '@/shared/Footer/Footer';
 
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
 
@@ -25,8 +28,14 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          <Toaster richColors position="top-right" />
-          <main>{children}</main>
+          <QueryProvider>
+            <Toaster richColors position="top-right" />
+            <main className="min-h-dvh">
+              <Navbar />
+              <div className="min-h-[85vh]">{children}</div>
+              <Footer />
+            </main>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -1,19 +1,19 @@
 import { Button } from '@/components/ui/button';
-import Footer from '@/shared/Footer/Footer';
-import Navbar from '@/shared/Navbar/Navbar';
 import Section from '@/shared/Section/Section';
 import Link from 'next/link';
+import { QuestionTextArea } from './components/QuestionTextArea';
 
 const Home = () => {
   return (
     <Section>
-      <Navbar />
-      <main className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-[75vh] flex-col items-center justify-center gap-10 py-12">
+        <QuestionTextArea />
         <Link href="/contests">
-          <Button size="lg">Contest</Button>
+          <Button variant="outline" size="lg">
+            Browse contests
+          </Button>
         </Link>
-      </main>
-      <Footer />
+      </div>
     </Section>
   );
 };

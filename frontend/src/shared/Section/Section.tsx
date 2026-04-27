@@ -6,9 +6,7 @@ interface SectionProps {
 }
 
 const Section = ({ className, children }: SectionProps) => {
-  return (
-    <section className={cn('max-w-[2000px] mx-auto px-6 py-6', className)}>{children}</section>
-  );
+  return <section className={cn('max-w-[2000px] mx-auto px-6', className)}>{children}</section>;
 };
 
 export default Section;

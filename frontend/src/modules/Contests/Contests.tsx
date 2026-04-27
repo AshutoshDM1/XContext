@@ -73,7 +73,7 @@ function ContestSection({
         <h2 className="text-lg font-semibold text-white">{title}</h2>
         {subtitle ? <p className="mt-1 max-w-2xl text-sm text-neutral-400">{subtitle}</p> : null}
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         {contests.map((c) => (
           <ContestCard key={c.id} contest={c} />
         ))}
@@ -88,20 +88,16 @@ const Contests = () => {
   const past = list.filter((c) => c.section === 'past');
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <Section className="flex min-h-screen flex-col py-6">
-        <Navbar />
-        <main className="mt-8 flex flex-1 flex-col gap-12 pb-12">
-          <ContestSection
-            title="Live Contests"
-            subtitle="Realtime rankings, multi-project scoring, and timed competition rounds."
-            contests={live}
-          />
-          <ContestSection title="Past Contests" contests={past} />
-        </main>
-        <Footer />
-      </Section>
-    </div>
+    <Section>
+      <main className="flex flex-1 flex-col gap-12 pb-12">
+        <ContestSection
+          title="Live Contests"
+          subtitle="Realtime rankings, multi-project scoring, and timed competition rounds."
+          contests={live}
+        />
+        <ContestSection title="Past Contests" contests={past} />
+      </main>
+    </Section>
   );
 };
 
