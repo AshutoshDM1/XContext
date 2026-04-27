@@ -6,10 +6,22 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   url: process.env.BETTER_AUTH_URL,
   baseURL: {
-    allowedHosts: [`${process.env.FRONTEND_URL}`],
-    fallback: `${process.env.BETTER_AUTH_URL}`,
+    // allowedHosts expects hostnames (no protocol)
+    allowedHosts: [
+      'localhost:3000',
+      'localhost:3001',
+      'x-context.vercel.app',
+      '*.vercel.app',
+      'xcontext-backend.elitedev.space',
+    ],
+    fallback: process.env.BETTER_AUTH_URL,
   },
-  trustedOrigins: [`${process.env.FRONTEND_URL}`],
+  trustedOrigins: [
+    process.env.FRONTEND_URL as string,
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://x-context.vercel.app',
+  ].filter(Boolean) as string[],
   socialProviders: {
     // github: {
     //   clientId: process.env.GITHUB_CLIENT_ID as string,
