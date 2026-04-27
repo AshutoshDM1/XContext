@@ -9,7 +9,7 @@ export const auth = betterAuth({
     allowedHosts: ['http://localhost:3000', '*.vercel.app'],
     fallback: 'http://localhost:7000',
   },
-  trustedOrigins: ['http://localhost:3000'],
+  trustedOrigins: ['http://localhost:3000', 'http://localhost:3001'],
   socialProviders: {
     // github: {
     //   clientId: process.env.GITHUB_CLIENT_ID as string,

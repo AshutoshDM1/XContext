@@ -2,8 +2,6 @@ import Link from 'next/link';
 import { ClockIcon, TrophyIcon, UsersIcon } from '@phosphor-icons/react/ssr';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import Footer from '@/shared/Footer/Footer';
-import Navbar from '@/shared/Navbar/Navbar';
 import Section from '@/shared/Section/Section';
 import { getContestList, type ContestSummary } from './data/mock-contests';
 
@@ -88,8 +86,8 @@ const Contests = () => {
   const past = list.filter((c) => c.section === 'past');
 
   return (
-    <Section>
-      <main className="flex flex-1 flex-col gap-12 pb-12">
+    <Section className="py-6">
+      <main className="flex flex-1 flex-col gap-12">
         <ContestSection
           title="Live Contests"
           subtitle="Realtime rankings, multi-project scoring, and timed competition rounds."

@@ -1,74 +1,153 @@
 'use client';
+
+import Link from 'next/link';
+import { ArrowLeft, ArrowRight, Globe, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { authClient, useSession } from '@/lib/auth-client';
-import Section from '@/shared/Section/Section';
-import Navbar from '@/shared/Navbar/Navbar';
-import Footer from '@/shared/Footer/Footer';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { signIn, useSession } from '@/lib/auth-client';
+import { cn } from '@/lib/utils';
+import { useState } from 'react';
 
 export default function Login() {
-  const router = useRouter();
-  const { data: session } = useSession();
-  useEffect(() => {
-    if (session !== null) {
-      router.push('/');
-    }
-  }, [session, router]);
-
   return (
-    <Section>
-      <Navbar />
-      <div className="space-y-10 h-[80vh] flex flex-col items-center justify-center">
-        <LoginHeroSection />
-        <LoginForm />
-      </div>
-      <Footer />
-    </Section>
+    <div className="grid min-h-[calc(100dvh-10rem)] w-full grid-cols-1 lg:min-h-[calc(100dvh-9rem)] lg:grid-cols-2">
+      <LoginBrandPanel />
+      <LoginAuthPanel />
+    </div>
   );
 }
 
-const LoginHeroSection = () => {
+function LoginBrandPanel() {
   return (
-    <div className="max-w-2xl text-center space-y-4">
-      <h1 className="text-4xl font-semibold leading-tight tracking-tight md:text-5xl uppercase ">
-        From “It works” to <br /> “I can explain it.”
-      </h1>
-      <p className="text-sm leading-6 text-muted-foreground">
-        Sign in, upload code, and practice with AI-generated MCQs, long-form questions, and small
-        coding prompts.
-      </p>
-    </div>
-  );
-};
+    <div
+      className={cn(
+        'relative flex flex-col justify-center overflow-hidden border-border bg-linear-to-t from-border/30 to-transparent px-8 py-14 sm:px-10 lg:border-r lg:px-12 lg:py-16 xl:px-16',
+      )}
+    >
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 w-2 opacity-90 sm:w-2.5"
+        aria-hidden
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 1px 1px, color-mix(in oklch, var(--primary) 40%, transparent) 1px, transparent 0)',
+          backgroundSize: '4px 4px',
+        }}
+      />
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 w-px bg-linear-to-t from-transparent via-border to-transparent"
+        aria-hidden
+      />
 
-const LoginForm = () => {
-  return (
-    <div className="border border-border bg-card text-card-foreground p-6 md:p-8">
-      <div className="space-y-4">
-        <div>
-          <div className="text-sm font-medium">Sign in</div>
-          <div className="mt-1 text-xs leading-5 text-muted-foreground">
-            Continue with Google to create your account.
-          </div>
-        </div>
-
-        <Button
-          variant="outline"
-          className="h-10 w-full"
-          onClick={() =>
-            authClient.signIn.social({
-              provider: 'google',
-              callbackURL: 'http://localhost:3000',
-            })
-          }
-        >
-          Continue with Google
-        </Button>
-        <div className="text-[11px] leading-5 text-muted-foreground">
-          By continuing, you agree to the app using cookies to keep you signed in.
+      <div className="relative mx-auto flex max-w-md flex-col items-center gap-8 text-center lg:mx-0 lg:items-start lg:text-left">
+        <div className="space-y-4">
+          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            XContext
+          </p>
+          <h1 className="text-balance text-3xl leading-tight font-semibold tracking-tight text-foreground sm:text-4xl lg:text-[2.25rem] lg:leading-snug uppercase">
+            From &ldquo;It works&rdquo; to &ldquo;I can explain it.&rdquo;
+          </h1>
+          <p className="text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
+            Sign in and practice with AI-generated questions—multiple choice, written explanations,
+            and small coding prompts built around your code.
+          </p>
         </div>
       </div>
     </div>
   );
-};
+}
+
+function LoginAuthPanel() {
+  return (
+    <div className="flex flex-col bg-background px-6 py-10 sm:px-10 lg:px-12 lg:py-14">
+      <Link
+        href="/"
+        className="mb-8 inline-flex w-fit items-center gap-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="size-3.5" aria-hidden />
+        Home
+      </Link>
+
+      <div className="flex flex-1 flex-col justify-center">
+        <div className="mx-auto w-full max-w-md space-y-8">
+          <LoginForm />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoginForm() {
+  const { data: session } = useSession();
+  console.log(session);
+  const [isLoading, setIsLoading] = useState(false);
+  return (
+    <div className="space-y-2">
+      <header className="space-y-1">
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+          Sign in to XContext
+        </h2>
+        <p className="text-sm text-muted-foreground">Connect with:</p>
+      </header>
+
+      <div className="border border-border bg-card p-6 text-card-foreground sm:p-8">
+        <div className="space-y-6">
+          {session ? (
+            <div className="space-y-4">
+              <p className="border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">
+                You&apos;re signed in. Continue to the app to start practicing.
+              </p>
+              <Button asChild className="h-11 w-full gap-2">
+                <Link href="/">
+                  Start exploring
+                  <ArrowRight className="size-4" aria-hidden />
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11 w-full justify-center gap-2 border-border bg-background text-foreground hover:bg-muted/60"
+                onClick={() => {
+                  setIsLoading(true);
+                  signIn
+                    .social({
+                      provider: 'google',
+                      callbackURL: process.env.NEXT_PUBLIC_FRONTEND_URL,
+                    })
+                    .then(() => {
+                      setIsLoading(false);
+                    })
+                    .catch(() => {
+                      setIsLoading(false);
+                    })
+                    .finally(() => {
+                      setIsLoading(false);
+                    });
+                }}
+              >
+                {isLoading ? (
+                  <Loader className="size-5 animate-spin" aria-hidden />
+                ) : (
+                  <>
+                    <Globe className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+                    <span>Continue with Google</span>
+                  </>
+                )}
+              </Button>
+
+              <p className="text-center text-[11px] leading-relaxed text-muted-foreground">
+                By continuing, you agree to the app using cookies to keep you signed in.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <p className="text-center text-xs text-muted-foreground">
+        New here?{' '}
+        <span className="text-foreground">Signing in with Google creates your account.</span>
+      </p>
+    </div>
+  );
+}

@@ -15,13 +15,13 @@ export default function Contest({ contestId }: ContestProps) {
   const contest = useMemo(() => getContestById(contestId), [contestId]);
 
   return (
-    <Section>
+    <Section className="py-6">
       <main className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border border-white/15 bg-black">
         <ToolTopbar title={contest.title} description={contest.topbarDescription} />
         <div className="min-h-0 flex-1">
           <ResizablePanelGroup
             orientation="horizontal"
-            className="h-full min-h-[calc(100dvh-12rem)]"
+            className="h-full min-h-[calc(100dvh-14rem)]"
           >
             <ResizablePanel defaultSize={50} minSize={25} className="min-h-0">
               <CodeDoc title={contest.title} problemMarkdown={contest.problemMarkdown} />

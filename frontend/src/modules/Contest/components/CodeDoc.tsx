@@ -17,41 +17,41 @@ export type CodeDocProps = {
 const mdComponents = {
   h1: ({ className, ...props }: ComponentProps<'h1'>) => (
     <h1
-      className={cn('mb-4 text-2xl font-semibold tracking-tight text-white', className)}
+      className={cn('mb-2 text-lg font-semibold tracking-tight text-white', className)}
       {...props}
     />
   ),
   h2: ({ className, ...props }: ComponentProps<'h2'>) => (
     <h2
-      className={cn('mb-3 mt-8 text-lg font-semibold text-white first:mt-0', className)}
+      className={cn('mb-3 mt-4 text-base font-semibold text-white first:mt-0', className)}
       {...props}
     />
   ),
   p: ({ className, ...props }: ComponentProps<'p'>) => (
-    <p className={cn('mb-3 text-sm leading-relaxed text-neutral-300', className)} {...props} />
+    <p className={cn('mb-3 text-xs leading-relaxed text-neutral-300', className)} {...props} />
   ),
   ul: ({ className, ...props }: ComponentProps<'ul'>) => (
     <ul
-      className={cn('mb-3 list-disc space-y-2 pl-5 text-sm text-neutral-300', className)}
+      className={cn('mb-3 list-disc space-y-2 pl-5 text-xs text-neutral-300', className)}
       {...props}
     />
   ),
   ol: ({ className, ...props }: ComponentProps<'ol'>) => (
     <ol
-      className={cn('mb-3 list-decimal space-y-2 pl-5 text-sm text-neutral-300', className)}
+      className={cn('mb-3 list-decimal space-y-2 pl-5 text-xs text-neutral-300', className)}
       {...props}
     />
   ),
   li: ({ className, ...props }: ComponentProps<'li'>) => (
-    <li className={cn('leading-relaxed', className)} {...props} />
+    <li className={cn('leading-relaxed text-xs', className)} {...props} />
   ),
   strong: ({ className, ...props }: ComponentProps<'strong'>) => (
-    <strong className={cn('font-semibold text-white', className)} {...props} />
+    <strong className={cn('font-semibold text-xs', className)} {...props} />
   ),
   code: ({ className, ...props }: ComponentProps<'code'>) => (
     <code
       className={cn(
-        'rounded-none border border-white/15 bg-white/10 px-1.5 py-0.5 font-mono text-[0.8125rem] text-neutral-100',
+        'text-xs rounded-none border border-white/15 bg-white/10 px-1.5 py-0.5 font-mono text-[0.8125rem] text-neutral-100',
         className,
       )}
       {...props}
