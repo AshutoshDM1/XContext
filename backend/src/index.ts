@@ -4,16 +4,13 @@ import router from './router/router';
 import { toNodeHandler } from 'better-auth/node';
 import { auth } from './utils/auth';
 import cors from 'cors';
+import { origins } from './utils/origins';
 const port = process.env.PORT || 3000;
 
 const app = express();
 
-const ORIGINS = [process.env.FRONTEND_URL?.split(','), process.env.BACKEND_URL?.split(',')]
-  .flat()
-  .filter(Boolean) as string[];
-
 const corsOptions = {
-  origin: ORIGINS,
+  origin: origins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: [

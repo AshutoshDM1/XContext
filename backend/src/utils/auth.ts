@@ -1,17 +1,15 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import db from './db';
-
-const ORIGINS = process.env.FRONTEND_URL?.split(',').filter(Boolean) as string[];
+import { origins } from './origins';
 
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   url: process.env.BETTER_AUTH_URL,
   baseURL: {
-    allowedHosts: ORIGINS,
-    fallback: process.env.FRONTEND_URL,
+    allowedHosts: origins,
   },
-  trustedOrigins: ORIGINS,
+  trustedOrigins: origins,
   socialProviders: {
     // github: {
     //   clientId: process.env.GITHUB_CLIENT_ID as string,

@@ -113,7 +113,6 @@ function LoginForm() {
                   signIn
                     .social({
                       provider: 'google',
-                      callbackURL: process.env.NEXT_PUBLIC_FRONTEND_URL,
                     })
                     .then(() => {
                       setIsLoading(false);
