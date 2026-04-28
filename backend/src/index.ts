@@ -17,6 +17,8 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
   'https://x-context.vercel.app',
+  'https://xcontext.elitedev.space',
+  'https://xcontext-backend.elitedev.space',
 ].filter(Boolean) as string[];
 
 const corsOptions = {

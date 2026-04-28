@@ -13,6 +13,7 @@ export const auth = betterAuth({
       'x-context.vercel.app',
       '*.vercel.app',
       'xcontext-backend.elitedev.space',
+      'xcontext.elitedev.space',
     ],
     fallback: process.env.BETTER_AUTH_URL,
   },
@@ -21,7 +22,18 @@ export const auth = betterAuth({
     'http://localhost:3000',
     'http://localhost:3001',
     'https://x-context.vercel.app',
+    'https://xcontext.elitedev.space',
   ].filter(Boolean) as string[],
+  advanced: {
+    // In production your frontend (vercel.app) and backend (elitedev.space) are cross-site.
+    // To persist the temporary OAuth state cookie set during the sign-in request,
+    // it must be a Secure cross-site cookie (SameSite=None; Secure).
+    useSecureCookies: true,
+    defaultCookieAttributes: {
+      sameSite: 'none',
+      secure: true,
+    },
+  },
   socialProviders: {
     // github: {
     //   clientId: process.env.GITHUB_CLIENT_ID as string,
