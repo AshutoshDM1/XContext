@@ -1,0 +1,71 @@
+---
+description: Use shadcn/ui components and follow shadcn theme
+globs: frontend/**/*.tsx
+alwaysApply: false
+---
+
+# shadcn/ui Components & Theme
+
+Always use shadcn/ui components for UI elements in the frontend.
+
+## Component Usage
+
+**Use shadcn/ui components** for all UI elements:
+
+```tsx
+// ✅ GOOD - Using shadcn components
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+
+export function MyComponent() {
+  return (
+    <Card>
+      <CardHeader>Title</CardHeader>
+      <CardContent>
+        <Input placeholder="Enter text" />
+        <Button>Submit</Button>
+      </CardContent>
+    </Card>
+  )
+}
+
+// ❌ BAD - Custom/non-shadcn components
+export function MyComponent() {
+  return (
+    <div className="custom-card">
+      <input type="text" />
+      <button>Submit</button>
+    </div>
+  )
+}
+```
+
+## Theme Consistency
+
+Follow the shadcn theme system using CSS variables and Tailwind utilities:
+
+```tsx
+// ✅ GOOD - Using theme variables
+<div className="bg-background text-foreground">
+  <h1 className="text-primary">Title</h1>
+  <p className="text-muted-foreground">Description</p>
+</div>
+
+// ❌ BAD - Hardcoded colors
+<div className="bg-white text-black">
+  <h1 className="text-blue-600">Title</h1>
+</div>
+```
+
+## Key Theme Colors
+
+- `background` / `foreground` - Main background and text
+- `primary` / `primary-foreground` - Primary actions and their text
+- `secondary` / `secondary-foreground` - Secondary actions
+- `muted` / `muted-foreground` - Muted backgrounds and text
+- `accent` / `accent-foreground` - Accent colors
+- `destructive` / `destructive-foreground` - Destructive actions
+- `border` - Border color
+- `input` - Input border color
+- `ring` - Focus ring color

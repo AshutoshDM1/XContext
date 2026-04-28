@@ -14,22 +14,22 @@ const ToolTopbar = ({ title, description }: ToolTopbarProps) => {
   const router = useRouter();
 
   return (
-    <header className="flex shrink-0 items-center justify-between gap-4 border-b border-white/15 bg-black px-3 py-3 text-white">
+    <header className="flex shrink-0 items-center justify-between gap-4 border-b bg-background px-3 py-3 text-foreground">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          className="size-9 shrink-0 text-white hover:bg-white/10 hover:text-white"
+          className="size-9 shrink-0"
           onClick={() => router.back()}
           aria-label="Go back"
         >
           <CaretLeftIcon className="size-5" weight="bold" />
         </Button>
-        <Separator orientation="vertical" className="h-10 bg-white/15" />
+        <Separator orientation="vertical" className="h-10" />
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-white">{title}</p>
-          <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-neutral-400">
+          <p className="truncate text-sm font-semibold">{title}</p>
+          <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
             {description}
           </p>
         </div>
@@ -37,7 +37,7 @@ const ToolTopbar = ({ title, description }: ToolTopbarProps) => {
       <Button
         type="button"
         variant="outline"
-        className="hidden shrink-0 border-white/25 text-white hover:bg-white/10 hover:text-white sm:inline-flex"
+        className="hidden shrink-0 sm:inline-flex"
         onClick={() => {}}
       >
         <TrophyIcon className="size-4" />

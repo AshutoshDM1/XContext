@@ -29,9 +29,9 @@ export function ContestWebTerminal() {
       fontSize: 12,
       fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
       theme: {
-        background: '#09090b',
-        foreground: '#fafafa',
-        cursor: '#fafafa',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        cursor: 'hsl(var(--foreground))',
       },
     });
     const fitAddon = new FitAddon();
@@ -132,15 +132,15 @@ export function ContestWebTerminal() {
 
   if (bootStatus !== 'ready') {
     return (
-      <div className="flex flex-1 items-center justify-center border-t border-white/10 bg-zinc-950 px-3 py-2 text-xs text-neutral-500">
+      <div className="flex flex-1 items-center justify-center border-t bg-background px-3 py-2 text-xs text-muted-foreground">
         Terminal is available when the environment is ready.
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col border-t border-white/10 bg-[#09090b]">
-      <div className="shrink-0 border-b border-white/10 px-2 py-1.5 text-[11px] font-medium uppercase tracking-wide text-neutral-500">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col border-t bg-background">
+      <div className="shrink-0 border-b px-2 py-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
         Terminal
       </div>
       <div ref={containerRef} className="min-h-0 min-w-0 flex-1 overflow-hidden p-1" />

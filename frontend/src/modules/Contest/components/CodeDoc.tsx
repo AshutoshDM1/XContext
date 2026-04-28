@@ -17,28 +17,28 @@ export type CodeDocProps = {
 const mdComponents = {
   h1: ({ className, ...props }: ComponentProps<'h1'>) => (
     <h1
-      className={cn('mb-2 text-lg font-semibold tracking-tight text-white', className)}
+      className={cn('mb-2 text-lg font-semibold tracking-tight text-foreground', className)}
       {...props}
     />
   ),
   h2: ({ className, ...props }: ComponentProps<'h2'>) => (
     <h2
-      className={cn('mb-3 mt-4 text-base font-semibold text-white first:mt-0', className)}
+      className={cn('mb-3 mt-4 text-base font-semibold text-foreground first:mt-0', className)}
       {...props}
     />
   ),
   p: ({ className, ...props }: ComponentProps<'p'>) => (
-    <p className={cn('mb-3 text-xs leading-relaxed text-neutral-300', className)} {...props} />
+    <p className={cn('mb-3 text-xs leading-relaxed text-muted-foreground', className)} {...props} />
   ),
   ul: ({ className, ...props }: ComponentProps<'ul'>) => (
     <ul
-      className={cn('mb-3 list-disc space-y-2 pl-5 text-xs text-neutral-300', className)}
+      className={cn('mb-3 list-disc space-y-2 pl-5 text-xs text-muted-foreground', className)}
       {...props}
     />
   ),
   ol: ({ className, ...props }: ComponentProps<'ol'>) => (
     <ol
-      className={cn('mb-3 list-decimal space-y-2 pl-5 text-xs text-neutral-300', className)}
+      className={cn('mb-3 list-decimal space-y-2 pl-5 text-xs text-muted-foreground', className)}
       {...props}
     />
   ),
@@ -51,7 +51,7 @@ const mdComponents = {
   code: ({ className, ...props }: ComponentProps<'code'>) => (
     <code
       className={cn(
-        'text-xs rounded-none border border-white/15 bg-white/10 px-1.5 py-0.5 font-mono text-[0.8125rem] text-neutral-100',
+        'text-xs rounded-none border bg-muted px-1.5 py-0.5 font-mono text-[0.8125rem] text-foreground',
         className,
       )}
       {...props}
@@ -60,7 +60,7 @@ const mdComponents = {
   pre: ({ className, ...props }: ComponentProps<'pre'>) => (
     <pre
       className={cn(
-        'mb-3 overflow-x-auto border border-white/15 bg-neutral-950 p-3 font-mono text-xs text-neutral-200',
+        'mb-3 overflow-x-auto border bg-muted p-3 font-mono text-xs text-foreground',
         className,
       )}
       {...props}
@@ -79,19 +79,19 @@ const CodeDoc = ({ title, problemMarkdown }: CodeDocProps) => {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-black text-white">
+    <div className="flex h-full min-h-0 flex-col bg-background text-foreground">
       <Tabs defaultValue="problem" className="flex min-h-0 flex-1 flex-col gap-0">
-        <div className="shrink-0 border-b border-white/15 px-4 pt-3">
-          <TabsList className="h-9 w-fit gap-0 rounded-none border border-white/15 bg-neutral-950 p-0">
+        <div className="shrink-0 border-b px-4 pt-3">
+          <TabsList className="h-9 w-fit gap-0 rounded-none border bg-muted p-0">
             <TabsTrigger
               value="problem"
-              className="rounded-none px-4 text-xs text-neutral-400 data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:bg-black data-[state=active]:text-white"
+              className="rounded-none px-4 text-xs text-muted-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-background data-[state=active]:text-foreground"
             >
               Problem
             </TabsTrigger>
             <TabsTrigger
               value="submissions"
-              className="rounded-none px-4 text-xs text-neutral-400 data-[state=active]:border-b-2 data-[state=active]:border-white data-[state=active]:bg-black data-[state=active]:text-white"
+              className="rounded-none px-4 text-xs text-muted-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-background data-[state=active]:text-foreground"
             >
               Submissions
             </TabsTrigger>
@@ -102,13 +102,13 @@ const CodeDoc = ({ title, problemMarkdown }: CodeDocProps) => {
           value="problem"
           className="mt-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
         >
-          <div className="flex shrink-0 flex-col gap-3 border-b border-white/15 px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
-            <h2 className="text-xl font-semibold tracking-tight text-white">{title}</h2>
+          <div className="flex shrink-0 flex-col gap-3 border-b px-4 py-4 sm:flex-row sm:items-start sm:justify-between">
+            <h2 className="text-xl font-semibold tracking-tight text-foreground">{title}</h2>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              className="shrink-0 border-white/25 text-white hover:bg-white/10 hover:text-white"
+              className="shrink-0"
               onClick={() => void copyProblem()}
             >
               <CopyIcon className="size-4" />
@@ -127,7 +127,7 @@ const CodeDoc = ({ title, problemMarkdown }: CodeDocProps) => {
           className="mt-0 flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
         >
           <ScrollArea className="min-h-0 flex-1">
-            <div className="px-4 py-10 text-center text-sm text-neutral-500">
+            <div className="px-4 py-10 text-center text-sm text-muted-foreground">
               No submissions yet
             </div>
           </ScrollArea>
