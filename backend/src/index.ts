@@ -8,8 +8,6 @@ const port = process.env.PORT || 3000;
 
 const app = express();
 
-// Required when running behind a reverse proxy / TLS terminator (common in prod),
-// otherwise secure cookies may not be set correctly.
 app.set('trust proxy', 1);
 
 const allowedOrigins = [
