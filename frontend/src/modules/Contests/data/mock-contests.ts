@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 export type ContestStatus = 'LIVE' | 'ENDED';
 
 export type ContestSection = 'live' | 'past';

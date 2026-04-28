@@ -8,19 +8,12 @@ const port = process.env.PORT || 3000;
 
 const app = express();
 
-app.set('trust proxy', 1);
-
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'https://x-context.vercel.app',
-  'https://xcontext.elitedev.space',
-  'https://xcontext-backend.elitedev.space',
-].filter(Boolean) as string[];
+const ORIGINS = [process.env.FRONTEND_URL?.split(','), process.env.BACKEND_URL?.split(',')]
+  .flat()
+  .filter(Boolean) as string[];
 
 const corsOptions = {
-  origin: allowedOrigins,
+  origin: ORIGINS,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
@@ -33,9 +26,9 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
 app.all('/api/auth/{*any}', toNodeHandler(auth));
 
+app.use(express.json());
 app.use('/api/v1', router);
 
 app.get('/', (req, res) => {
