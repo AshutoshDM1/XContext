@@ -4,7 +4,10 @@ import { ClockIcon, TrophyIcon, UsersIcon } from '@phosphor-icons/react/ssr';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Section from '@/shared/Section/Section';
-import { useContestStore, type Contest } from '@/store/contests';
+import Loader from '@/shared/Loader/Loader';
+import { type Contest } from '@/store/contests';
+import { CreateContestDialog } from './components/CreateContestDialog';
+import { useContests } from '@/hooks/useContests';
 
 function ContestCard({ contest }: { contest: Contest }) {
   const cta =
@@ -13,14 +16,14 @@ function ContestCard({ contest }: { contest: Contest }) {
         href={`/contests/${contest.id}`}
         className="text-sm text-foreground underline underline-offset-4 hover:text-muted-foreground"
       >
-        View results
+        See Results
       </Link>
     ) : (
       <Link
         href={`/contests/${contest.id}`}
         className="text-sm text-foreground underline underline-offset-4 hover:text-muted-foreground"
       >
-        View contest
+        Give Contest
       </Link>
     );
 
@@ -58,41 +61,67 @@ function ContestSection({
   title,
   subtitle,
   contests,
+  showCreateButton,
 }: {
   title: string;
   subtitle?: string;
   contests: Contest[];
+  showCreateButton?: boolean;
 }) {
-  if (contests.length === 0) return null;
+  if (contests.length === 0 && !showCreateButton) return null;
   return (
     <section className="space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-        {subtitle ? (
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{subtitle}</p>
-        ) : null}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+          {subtitle ? (
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{subtitle}</p>
+          ) : null}
+        </div>
+        {showCreateButton && <CreateContestDialog />}
       </div>
-      <div className="grid gap-4 sm:grid-cols-3">
-        {contests.map((c) => (
-          <ContestCard key={c.id} contest={c} />
-        ))}
-      </div>
+      {contests.length > 0 ? (
+        <div className="grid gap-4 sm:grid-cols-3">
+          {contests.map((c) => (
+            <ContestCard key={c.id} contest={c} />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-lg border border-dashed p-12 text-center">
+          <p className="text-sm text-muted-foreground">
+            No contests yet. Create your first contest!
+          </p>
+        </div>
+      )}
     </section>
   );
 }
 
 const Contests = () => {
-  const { yourContests, liveContests } = useContestStore();
+  const { data: contests, isLoading } = useContests();
+
+  const yourContests: Contest[] = contests?.filter((c: Contest) => c.status === 'ENDED') ?? [];
+  const liveContests: Contest[] = contests?.filter((c: Contest) => c.status === 'LIVE') ?? [];
+
+  if (isLoading) {
+    return (
+      <Section className="py-6">
+        <div className="flex min-h-[400px] flex-1 items-center justify-center">
+          <Loader size="sm" message="Loading contests..." />
+        </div>
+      </Section>
+    );
+  }
 
   return (
     <Section className="py-6">
       <main className="flex flex-1 flex-col gap-12">
+        <ContestSection title="Your Contests" contests={yourContests} showCreateButton />
         <ContestSection
           title="Live Contests"
           subtitle="Realtime rankings, multi-project scoring, and timed competition rounds."
           contests={liveContests}
         />
-        <ContestSection title="Your Contests" contests={yourContests} />
       </main>
     </Section>
   );

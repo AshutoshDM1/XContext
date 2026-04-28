@@ -1,9 +1,7 @@
 ---
 description: Use shadcn/ui components and follow shadcn theme
-globs: frontend/**/*.tsx
 alwaysApply: false
 ---
-
 # shadcn/ui Components & Theme
 
 Always use shadcn/ui components for UI elements in the frontend.

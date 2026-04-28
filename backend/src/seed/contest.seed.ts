@@ -1,46 +1,12 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { Contest, Project } from '../store/contests';
+import 'dotenv/config';
+import db from '@/utils/db';
+import { contest } from '@/db/schema';
 
-// Mock Live Contests
-export const MOCK_LIVE_CONTESTS: Contest[] = [
+const SEED_USER_ID = '6yjaFy0Cmi4Y5CciAwC0bmBagpcizFVY'; // Replace with actual user ID from your database
+
+const contestsData = [
   {
-    id: 'pda-registry-challenge',
-    title: 'PDA Registry Sprint',
-    shortDescription:
-      'Register and resolve Program Derived Addresses with seeds, bump validation, and a minimal explorer UI.',
-    topbarDescription:
-      'Register PDAs with canonical bumps, resolve by program + seeds, and expose a read-only JSON API.',
-    status: 'LIVE',
-    participantCount: 128,
-    timeLabel: 'Live now',
-    projects: [
-      {
-        projectId: 'pda-registry-project-1',
-        problemMarkdown: `# PDA Registry (Medium)
-
-Implement a service that registers PDAs for a fixed program id. Store **program id**, **seeds** (as byte arrays or base64), **bump**, and **derived address**.
-
-## Endpoints
-
-\`POST /api/pdas\` — Register a PDA (must verify bump is canonical)
-
-\`GET /api/pdas?program=\` — List PDAs for a program
-
-\`GET /api/pdas/:address\` — Lookup by derived address
-
-## Requirements
-
-- Canonical bump check on every registration.
-- Return **404** when no record exists.`,
-      },
-    ],
-  },
-];
-
-// Mock Your Contests (Past/Enrolled)
-export const MOCK_YOUR_CONTESTS: Contest[] = [
-  {
-    id: 'superteam-march-bounty',
+    userId: SEED_USER_ID,
     title: 'SuperTeam x 100xDevs March Bounty Contest',
     shortDescription:
       'Build 3 projects — an address book, a PDA registry, and a multi-sig vault — testing your understanding of wallets, PDAs, and private keys.',
@@ -124,7 +90,39 @@ Return **403** for unauthorized signers and **409** for invalid state transition
     ],
   },
   {
-    id: 'multisig-vault-lab',
+    userId: SEED_USER_ID,
+    title: 'PDA Registry Sprint',
+    shortDescription:
+      'Register and resolve Program Derived Addresses with seeds, bump validation, and a minimal explorer UI.',
+    topbarDescription:
+      'Register PDAs with canonical bumps, resolve by program + seeds, and expose a read-only JSON API.',
+    status: 'LIVE',
+    participantCount: 128,
+    timeLabel: 'Live now',
+    projects: [
+      {
+        projectId: 'pda-registry-project-1',
+        problemMarkdown: `# PDA Registry (Medium)
+
+Implement a service that registers PDAs for a fixed program id. Store **program id**, **seeds** (as byte arrays or base64), **bump**, and **derived address**.
+
+## Endpoints
+
+\`POST /api/pdas\` — Register a PDA (must verify bump is canonical)
+
+\`GET /api/pdas?program=\` — List PDAs for a program
+
+\`GET /api/pdas/:address\` — Lookup by derived address
+
+## Requirements
+
+- Canonical bump check on every registration.
+- Return **404** when no record exists.`,
+      },
+    ],
+  },
+  {
+    userId: SEED_USER_ID,
     title: 'Multi-sig Vault Lab',
     shortDescription:
       'Simulate a vault with M-of-N signers, proposal queue, and execution deadlines.',
@@ -155,3 +153,30 @@ Return **403** for unauthorized signers and **409** for invalid state transition
     ],
   },
 ];
+
+async function seed() {
+  try {
+    console.log('🌱 Seeding contests...');
+
+    const inserted = await db.insert(contest).values(contestsData).returning();
+
+    console.log(`✅ Successfully seeded ${inserted.length} contests`);
+    console.log(
+      'Contest IDs:',
+      inserted.map((c) => c.id),
+    );
+  } catch (error) {
+    console.error('❌ Error seeding contests:', error);
+    throw error;
+  }
+}
+
+seed()
+  .then(() => {
+    console.log('✅ Seed completed');
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error('❌ Seed failed:', error);
+    process.exit(1);
+  });

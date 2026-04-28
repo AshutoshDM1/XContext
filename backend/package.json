@@ -15,7 +15,7 @@
     "pull": "drizzle-kit pull",
     "migrate": "drizzle-kit migrate",
     "studio": "drizzle-kit studio",
-    "seed": "bun run src/db/user.seed.ts"
+    "seed:contest": "bun run src/seed/contest.seed.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",

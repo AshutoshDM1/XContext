@@ -276,7 +276,11 @@ const CodeEditor = () => {
         </div>
       </div>
 
-      <ResizablePanelGroup orientation="vertical" className="min-h-0 flex-1">
+      <ResizablePanelGroup
+        orientation="vertical"
+        className="min-h-0 flex-1"
+        autoSave="code-editor-layout"
+      >
         <ResizablePanel defaultSize={68} minSize={35} className="min-h-0">
           <div className="flex h-full min-h-0 flex-1">
             <aside className="flex w-54 shrink-0 flex-col border-r bg-muted/40">
