@@ -1,27 +1,15 @@
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import db from './db';
+import { origins } from './origins';
 
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   url: process.env.BETTER_AUTH_URL,
   baseURL: {
-    // allowedHosts expects hostnames (no protocol)
-    allowedHosts: [
-      'localhost:3000',
-      'localhost:3001',
-      'x-context.vercel.app',
-      '*.vercel.app',
-      'xcontext-backend.elitedev.space',
-    ],
-    fallback: process.env.BETTER_AUTH_URL,
+    allowedHosts: origins,
   },
-  trustedOrigins: [
-    process.env.FRONTEND_URL as string,
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'https://x-context.vercel.app',
-  ].filter(Boolean) as string[],
+  trustedOrigins: origins,
   socialProviders: {
     // github: {
     //   clientId: process.env.GITHUB_CLIENT_ID as string,
@@ -31,6 +19,14 @@ export const auth = betterAuth({
       clientId: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
+  },
+  onError: (error: any) => {
+    console.error(error.message);
+    return {
+      status: 'error',
+      message: error.message,
+      redirect: process.env.FRONTEND_URL,
+    };
   },
   database: drizzleAdapter(db, {
     provider: 'pg',

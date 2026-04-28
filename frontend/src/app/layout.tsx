@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import Navbar from '@/shared/Navbar/Navbar';
 import Footer from '@/shared/Footer/Footer';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
 
@@ -30,6 +31,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <QueryProvider>
             <Toaster richColors position="top-right" />
+            <ThemeToggle />
             <main className="min-h-dvh">
               <Navbar />
               <div className="min-h-[85vh]">{children}</div>

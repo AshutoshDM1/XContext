@@ -156,7 +156,7 @@ const CodeEditor = () => {
         : 'Error';
 
   return (
-    <div className="flex h-full min-h-0 flex-col border-l border-white/15 bg-zinc-950 text-white">
+    <div className="flex h-full min-h-0 flex-col border-l bg-background text-foreground">
       <Dialog open={createDialog !== null} onOpenChange={(open) => !open && closeCreateDialog()}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -214,22 +214,22 @@ const CodeEditor = () => {
         </DialogContent>
       </Dialog>
 
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-black/50 px-3 py-2">
+      <div className="flex shrink-0 items-center justify-between gap-2 border-b bg-muted/50 px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
           {bootStatus === 'booting' ? (
-            <CircleNotchIcon className="size-4 shrink-0 animate-spin text-neutral-400" />
+            <CircleNotchIcon className="size-4 shrink-0 animate-spin text-muted-foreground" />
           ) : (
             <span
               className={cn(
                 'size-2 shrink-0 rounded-full',
                 bootStatus === 'ready' && 'bg-emerald-500',
                 bootStatus === 'error' && 'bg-red-500',
-                bootStatus === 'idle' && 'bg-neutral-500',
+                bootStatus === 'idle' && 'bg-muted-foreground',
               )}
               aria-hidden
             />
           )}
-          <span className="truncate text-xs text-neutral-400">{statusLabel}</span>
+          <span className="truncate text-xs text-muted-foreground">{statusLabel}</span>
         </div>
         <div className="flex shrink-0 items-center gap-1">
           {bootStatus === 'ready' && (
@@ -238,7 +238,7 @@ const CodeEditor = () => {
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                className="size-8 text-neutral-300 hover:bg-white/10 hover:text-white"
+                className="size-8 text-muted-foreground hover:text-foreground"
                 title="New file"
                 aria-label="New file"
                 onClick={openCreateFileDialog}
@@ -249,7 +249,7 @@ const CodeEditor = () => {
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                className="size-8 text-neutral-300 hover:bg-white/10 hover:text-white"
+                className="size-8 text-muted-foreground hover:text-foreground"
                 title="New folder"
                 aria-label="New folder"
                 onClick={openCreateFolderDialog}
@@ -263,7 +263,7 @@ const CodeEditor = () => {
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 shrink-0 gap-1.5 text-neutral-300 hover:bg-white/10 hover:text-white"
+              className="h-8 shrink-0 gap-1.5 text-muted-foreground hover:text-foreground"
               onClick={() => {
                 teardown();
                 void boot();
@@ -276,18 +276,22 @@ const CodeEditor = () => {
         </div>
       </div>
 
-      <ResizablePanelGroup orientation="vertical" className="min-h-0 flex-1">
+      <ResizablePanelGroup
+        orientation="vertical"
+        className="min-h-0 flex-1"
+        autoSave="code-editor-layout"
+      >
         <ResizablePanel defaultSize={68} minSize={35} className="min-h-0">
           <div className="flex h-full min-h-0 flex-1">
-            <aside className="flex w-54 shrink-0 flex-col border-r border-white/10 bg-black/40">
-              <p className="shrink-0 px-2 py-2 text-[11px] font-medium uppercase tracking-wide text-neutral-500">
+            <aside className="flex w-54 shrink-0 flex-col border-r bg-muted/40">
+              <p className="shrink-0 px-2 py-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 Files
               </p>
               <div className="min-h-0 flex-1">
                 {bootStatus === 'error' ? (
-                  <p className="px-2 text-xs leading-relaxed text-red-400/90">{bootError}</p>
+                  <p className="px-2 text-xs leading-relaxed text-destructive">{bootError}</p>
                 ) : bootStatus === 'booting' || bootStatus === 'idle' ? (
-                  <p className="px-2 text-xs text-neutral-500">Loading file tree…</p>
+                  <p className="px-2 text-xs text-muted-foreground">Loading file tree…</p>
                 ) : treeElements.length > 0 ? (
                   <Tree
                     key={treeRevision}
@@ -300,7 +304,7 @@ const CodeEditor = () => {
                     }}
                   />
                 ) : (
-                  <p className="px-2 text-xs text-neutral-500">No files</p>
+                  <p className="px-2 text-xs text-muted-foreground">No files</p>
                 )}
               </div>
             </aside>
@@ -308,11 +312,11 @@ const CodeEditor = () => {
             <div className="flex min-h-0 min-w-0 flex-1 flex-col">
               {bootStatus === 'ready' && selectedFilePath ? (
                 <>
-                  <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-black/30 px-3 py-1.5">
-                    <span className="min-w-0 truncate font-mono text-xs text-neutral-400">
+                  <div className="flex shrink-0 items-center justify-between gap-2 border-b bg-muted/30 px-3 py-1.5">
+                    <span className="min-w-0 truncate font-mono text-xs text-muted-foreground">
                       {selectedFilePath}
                       {isDirty ? (
-                        <span className="text-amber-400/90" aria-label="Unsaved changes">
+                        <span className="text-amber-500" aria-label="Unsaved changes">
                           {' '}
                           •
                         </span>
@@ -322,7 +326,7 @@ const CodeEditor = () => {
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="h-7 shrink-0 gap-1.5 border-white/20 text-xs text-white hover:bg-white/10 hover:text-white"
+                      className="h-7 shrink-0 gap-1.5 text-xs"
                       onClick={() => void handleSave()}
                     >
                       <FloppyDiskIcon className="size-3.5" />
@@ -340,23 +344,25 @@ const CodeEditor = () => {
                 </>
               ) : bootStatus === 'ready' ? (
                 <div className="flex flex-1 items-center justify-center px-4">
-                  <p className="text-center text-sm text-neutral-500">Select a file to edit</p>
+                  <p className="text-center text-sm text-muted-foreground">Select a file to edit</p>
                 </div>
               ) : bootStatus === 'error' ? (
                 <div className="flex flex-1 items-center justify-center px-4">
-                  <p className="text-center text-sm text-neutral-500">
+                  <p className="text-center text-sm text-muted-foreground">
                     Fix the issue above, then retry to use the editor.
                   </p>
                 </div>
               ) : (
                 <div className="flex flex-1 items-center justify-center px-4">
-                  <p className="text-center text-sm text-neutral-500">Preparing WebContainer…</p>
+                  <p className="text-center text-sm text-muted-foreground">
+                    Preparing WebContainer…
+                  </p>
                 </div>
               )}
             </div>
           </div>
         </ResizablePanel>
-        <ResizableHandle withHandle className="h-1.5 shrink-0 bg-white/10" />
+        <ResizableHandle withHandle className="h-1.5 shrink-0 bg-border" />
         <ResizablePanel defaultSize={32} minSize={12} className="min-h-0">
           <ContestWebTerminal />
         </ResizablePanel>
