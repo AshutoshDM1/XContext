@@ -13,6 +13,11 @@ export interface AuthenticatedRequest extends Request {
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const session = await auth.api.getSession({ headers: req.headers });
+    console.error('Session validation failed:', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      cookies: req.headers.cookie,
+    });
 
     if (!session || !session.user) {
       res.status(401).json({ message: 'Unauthorized: No valid session' });

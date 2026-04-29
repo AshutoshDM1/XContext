@@ -20,10 +20,12 @@ const corsOptions = {
     'X-CSRF-Token',
     'X-Better-Auth-CSRF',
   ],
+  exposedHeaders: ['Set-Cookie'],
 };
 
 app.use(cors(corsOptions));
-app.all('/api/auth/{*any}', toNodeHandler(auth));
+app.options('*', cors(corsOptions)); // Enable pre-flight for all routes
+app.all('/api/auth/*', toNodeHandler(auth));
 
 app.use(express.json());
 app.use('/api/v1', router);

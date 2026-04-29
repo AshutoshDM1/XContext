@@ -1,10 +1,14 @@
 import { createAuthClient } from 'better-auth/react';
 
+// For cross-subdomain auth to work, we need direct backend requests
+// The proxy approach doesn't preserve Set-Cookie headers correctly
+
 export const authClient = createAuthClient({
-  // Use same-origin `/api/auth/*` which is rewritten to the backend in `next.config.ts`.
-  // This avoids third-party cookie issues in production (state/session cookies become first-party).
-  baseURL: '',
+  baseURL: '', // Direct backend in prod, proxy in dev
   basePath: '/api/auth',
+  fetchOptions: {
+    credentials: 'include', // Include cookies in cross-origin requests
+  },
 });
 
 export const { signIn, signOut, useSession, signUp } = authClient;

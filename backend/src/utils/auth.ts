@@ -10,6 +10,19 @@ export const auth = betterAuth({
     allowedHosts: origins,
   },
   trustedOrigins: origins,
+  advanced: {
+    useSecureCookies: true,
+    crossSubDomainCookies: {
+      enabled: true,
+      domain: `elitedev.space`,
+    },
+  },
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60, // 5 minutes
+    },
+  },
   socialProviders: {
     // github: {
     //   clientId: process.env.GITHUB_CLIENT_ID as string,
@@ -21,7 +34,7 @@ export const auth = betterAuth({
     },
   },
   onError: (error: any) => {
-    console.error(error.message);
+    console.error('Better Auth Error:', error.message);
     return {
       status: 'error',
       message: error.message,

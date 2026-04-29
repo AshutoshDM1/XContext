@@ -7,4 +7,8 @@ if (!BACKEND_URL) {
 
 export const baseApi = axios.create({
   baseURL: BACKEND_URL,
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
