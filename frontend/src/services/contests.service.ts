@@ -30,7 +30,9 @@ export interface CreateContestInput {
   projects: Project[];
 }
 
-export interface UpdateContestInput extends Partial<CreateContestInput> {}
+export interface UpdateContestInput extends Partial<CreateContestInput> {
+  id: number;
+}
 
 const handleError = (error: unknown) => {
   if (error instanceof Error) {
@@ -41,9 +43,20 @@ const handleError = (error: unknown) => {
   throw error;
 };
 
-export async function getAllContests(): Promise<Contest[]> {
+export async function getUserContests(): Promise<Contest[]> {
   try {
     const response = await baseApi.get('/api/v1/contests', {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: unknown) {
+    throw handleError(error);
+  }
+}
+
+export async function getPublicContests(): Promise<Contest[]> {
+  try {
+    const response = await baseApi.get('/api/v1/contests/public', {
       withCredentials: true,
     });
     return response.data;

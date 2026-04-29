@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { JetBrains_Mono } from 'next/font/google';
+import { DM_Sans, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { QueryProvider } from '@/components/providers/query-provider';
@@ -10,6 +10,8 @@ import Footer from '@/shared/Footer/Footer';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
+
+const dmSans = DM_Sans({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
   title: 'XContext',
@@ -25,7 +27,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn('h-full', 'antialiased', 'font-mono', jetbrainsMono.variable)}
+      className={cn('h-full', 'antialiased', 'font-mono', jetbrainsMono.variable, dmSans.variable)}
     >
       <body>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>

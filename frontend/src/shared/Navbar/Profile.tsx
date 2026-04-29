@@ -28,7 +28,13 @@ const Profile = () => {
   const [loggingOut, setLoggingOut] = useState(false);
 
   const user = (session as unknown as { user?: unknown } | null | undefined)?.user as
-    | { name?: string | null; email?: string | null; image?: string | null; id?: string | null }
+    | {
+        name?: string | null;
+        email?: string | null;
+        image?: string | null;
+        id?: string | null;
+        isAdmin?: boolean | null;
+      }
     | undefined;
 
   const displayName = useMemo(() => user?.name ?? user?.email ?? 'User', [user?.email, user?.name]);
@@ -81,6 +87,12 @@ const Profile = () => {
               <span className="max-w-[60%] truncate text-xs text-foreground">{user.id}</span>
             </div>
           )}
+
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs text-muted-foreground">Admin</span>
+            <span className="text-xs text-foreground">{user?.isAdmin ? 'Yes' : 'No'}</span>
+          </div>
+
           <div className="flex items-center justify-between gap-3">
             <span className="text-xs text-muted-foreground">Status</span>
             <span className="text-xs text-foreground">Signed in</span>

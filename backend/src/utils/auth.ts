@@ -24,6 +24,22 @@ export const auth = betterAuth({
       enabled: true,
       maxAge: 5 * 60, // 5 minutes
     },
+    fetchUser: async (userId: string) => {
+      const result = await db.query.user.findFirst({
+        where: (users, { eq }) => eq(users.id, userId),
+      });
+      return result || null;
+    },
+  },
+  user: {
+    additionalFields: {
+      isAdmin: {
+        type: 'boolean',
+        defaultValue: false,
+        required: false,
+        fieldName: 'admin',
+      },
+    },
   },
   socialProviders: {
     // github: {
@@ -35,6 +51,7 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
   },
+
   onError: (error: any) => {
     console.error('Better Auth Error:', error.message);
     return {

@@ -5,6 +5,7 @@ import {
   getContestById,
   updateContest,
   deleteContest,
+  getPublicContests,
 } from '@/controllers/contest/contest.controllers';
 import { authenticate } from '@/middleware/authentication';
 
@@ -14,6 +15,7 @@ router.use(authenticate);
 
 router.post('/', createContest);
 router.get('/', getContests);
+router.get('/public', getPublicContests);
 router.get('/:id', getContestById);
 router.put('/:id', updateContest);
 router.delete('/:id', deleteContest);

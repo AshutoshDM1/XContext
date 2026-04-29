@@ -33,6 +33,17 @@ export const getContests = asyncHandler(async (req: Request, res: Response) => {
   res.json(contests);
 });
 
+export const getPublicContests = asyncHandler(async (req: Request, res: Response) => {
+  const userId = '6yjaFy0Cmi4Y5CciAwC0bmBagpcizFVY';
+
+  const contests = await db.query.contest.findMany({
+    where: eq(contest.userId, userId),
+    orderBy: (contest, { desc }) => [desc(contest.createdAt)],
+  });
+
+  res.json(contests);
+});
+
 export const getContestById = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as AuthenticatedRequest).user.id;
 
@@ -49,9 +60,7 @@ export const getContestById = asyncHandler(async (req: Request, res: Response) =
 });
 
 export const updateContest = asyncHandler(async (req: Request, res: Response) => {
-  const userId = (req as AuthenticatedRequest).user.id;
   const validated = updateContestSchema.parse(req.body);
-
   const [updated] = await db
     .update(contest)
     .set(validated)
@@ -67,8 +76,6 @@ export const updateContest = asyncHandler(async (req: Request, res: Response) =>
 });
 
 export const deleteContest = asyncHandler(async (req: Request, res: Response) => {
-  const userId = (req as AuthenticatedRequest).user.id;
-
   const [deleted] = await db
     .delete(contest)
     .where(eq(contest.id, Number(req.params.id)))

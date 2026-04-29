@@ -1,72 +1,24 @@
 'use client';
-import Link from 'next/link';
-import { ClockIcon, TrophyIcon, UsersIcon } from '@phosphor-icons/react/ssr';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Section from '@/shared/Section/Section';
 import Loader from '@/shared/Loader/Loader';
 import { type Contest } from '@/store/contests';
 import { CreateContestDialog } from './components/CreateContestDialog';
-import { useContests } from '@/hooks/useContests';
+import { usePublicContests, useUserContests } from '@/hooks/useContests';
+import useIsAdmin from '@/lib/admin';
+import ContestCard from './components/ContestCard';
 
-function ContestCard({ contest }: { contest: Contest }) {
-  const cta =
-    contest.status === 'ENDED' ? (
-      <Link
-        href={`/contests/${contest.id}`}
-        className="text-sm text-foreground underline underline-offset-4 hover:text-muted-foreground"
-      >
-        See Results
-      </Link>
-    ) : (
-      <Link
-        href={`/contests/${contest.id}`}
-        className="text-sm text-foreground underline underline-offset-4 hover:text-muted-foreground"
-      >
-        Give Contest
-      </Link>
-    );
-
-  return (
-    <Card className="bg-card text-card-foreground">
-      <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
-        <CardTitle className="text-sm font-semibold leading-snug">{contest.title}</CardTitle>
-        <Badge variant="outline" className="shrink-0">
-          {contest.status}
-        </Badge>
-      </CardHeader>
-      <CardContent className="space-y-4 px-4">
-        <p className="text-xs leading-relaxed text-muted-foreground">{contest.shortDescription}</p>
-        <ul className="space-y-2 text-xs text-muted-foreground">
-          <li className="flex items-center gap-2">
-            <TrophyIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-            <span>{contest.projects.length} projects</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <UsersIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-            <span>{contest.participantCount.toLocaleString()} participants</span>
-          </li>
-          <li className="flex items-center gap-2">
-            <ClockIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-            <span>{contest.timeLabel}</span>
-          </li>
-        </ul>
-      </CardContent>
-      <CardFooter className="border-t px-4 pt-4">{cta}</CardFooter>
-    </Card>
-  );
-}
-
-function ContestSection({
+export function ContestSection({
   title,
   subtitle,
   contests,
   showCreateButton,
+  isAdmin,
 }: {
   title: string;
   subtitle?: string;
   contests: Contest[];
   showCreateButton?: boolean;
+  isAdmin?: boolean;
 }) {
   if (contests.length === 0 && !showCreateButton) return null;
   return (
@@ -83,7 +35,7 @@ function ContestSection({
       {contests.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-3">
           {contests.map((c) => (
-            <ContestCard key={c.id} contest={c} />
+            <ContestCard key={c.id} contest={c} isAdmin={isAdmin} />
           ))}
         </div>
       ) : (
@@ -98,12 +50,15 @@ function ContestSection({
 }
 
 const Contests = () => {
-  const { data: contests, isLoading } = useContests();
+  const { data: userContests, isLoading: isUserContestsLoading } = useUserContests();
+  const { data: publicContests, isLoading: isPublicContestsLoading } = usePublicContests();
+  const isAdmin = useIsAdmin();
 
-  const yourContests: Contest[] = contests?.filter((c: Contest) => c.status === 'ENDED') ?? [];
-  const liveContests: Contest[] = contests?.filter((c: Contest) => c.status === 'LIVE') ?? [];
+  const UserContests =
+    userContests?.filter((c: Contest) => !publicContests?.some((p: Contest) => p.id === c.id)) ??
+    [];
 
-  if (isLoading) {
+  if (isUserContestsLoading || isPublicContestsLoading || !userContests || !publicContests) {
     return (
       <Section className="py-6">
         <div className="flex min-h-[400px] flex-1 items-center justify-center">
@@ -115,12 +70,18 @@ const Contests = () => {
 
   return (
     <Section className="py-6">
-      <main className="flex flex-1 flex-col gap-12">
-        <ContestSection title="Your Contests" contests={yourContests} showCreateButton />
+      <main className="flex flex-1 max-w-7xl mx-auto flex-col gap-12">
         <ContestSection
-          title="Live Contests"
+          title="Your Contests"
+          contests={UserContests}
+          showCreateButton
+          isAdmin={true}
+        />
+        <ContestSection
+          title="Public Contests"
           subtitle="Realtime rankings, multi-project scoring, and timed competition rounds."
-          contests={liveContests}
+          contests={publicContests}
+          isAdmin={isAdmin}
         />
       </main>
     </Section>
