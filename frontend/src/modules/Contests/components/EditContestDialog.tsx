@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PlusIcon, TrashIcon } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,7 +10,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,8 +22,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { type ContestStatus } from '@/store/contests';
-import { useCreateContest } from '@/hooks/useContests';
+import { type ContestStatus, type Contest } from '@/store/contests';
+import { useUpdateContest } from '@/hooks/useContests';
 import { toast } from 'sonner';
 
 interface ProjectInput {
@@ -32,19 +31,36 @@ interface ProjectInput {
   problemMarkdown: string;
 }
 
-export function CreateContestDialog() {
-  const [open, setOpen] = useState(false);
-  const { mutate: createContest, isPending } = useCreateContest();
+interface EditContestDialogProps {
+  contest: Contest;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
 
-  const [title, setTitle] = useState('');
-  const [shortDescription, setShortDescription] = useState('');
-  const [topbarDescription, setTopbarDescription] = useState('');
-  const [status, setStatus] = useState<ContestStatus>('LIVE');
-  const [timeLabel, setTimeLabel] = useState('');
-  const [participantCount, setParticipantCount] = useState('0');
-  const [projects, setProjects] = useState<ProjectInput[]>([
-    { projectId: '', problemMarkdown: '' },
-  ]);
+export function EditContestDialog({ contest, open, onOpenChange }: EditContestDialogProps) {
+  const { mutate: updateContest, isPending } = useUpdateContest();
+
+  const [title, setTitle] = useState(contest.title);
+  const [shortDescription, setShortDescription] = useState(contest.shortDescription);
+  const [topbarDescription, setTopbarDescription] = useState(contest.topbarDescription || '');
+  const [status, setStatus] = useState<ContestStatus>(contest.status);
+  const [timeLabel, setTimeLabel] = useState(contest.timeLabel);
+  const [participantCount, setParticipantCount] = useState(String(contest.participantCount));
+  const [projects, setProjects] = useState<ProjectInput[]>(contest.projects);
+
+  useEffect(() => {
+    if (!open) return;
+    const sync = () => {
+      setTitle(contest.title);
+      setShortDescription(contest.shortDescription);
+      setTopbarDescription(contest.topbarDescription || '');
+      setStatus(contest.status);
+      setTimeLabel(contest.timeLabel);
+      setParticipantCount(String(contest.participantCount));
+      setProjects(contest.projects);
+    };
+    queueMicrotask(sync);
+  }, [open, contest]);
 
   const addProject = () => {
     if (projects.length < 3) {
@@ -64,17 +80,7 @@ export function CreateContestDialog() {
     setProjects(updated);
   };
 
-  const resetForm = () => {
-    setTitle('');
-    setShortDescription('');
-    setTopbarDescription('');
-    setStatus('LIVE');
-    setTimeLabel('');
-    setParticipantCount('0');
-    setProjects([{ projectId: '', problemMarkdown: '' }]);
-  };
-
-  const handleCreate = () => {
+  const handleUpdate = () => {
     if (!title.trim()) {
       toast.error('Please enter a contest title');
       return;
@@ -90,42 +96,37 @@ export function CreateContestDialog() {
       return;
     }
 
-    createContest(
+    updateContest(
       {
-        title,
-        shortDescription,
-        topbarDescription: topbarDescription || undefined,
-        status,
-        participantCount: parseInt(participantCount) || 0,
-        timeLabel: timeLabel || 'Custom',
-        projects: projects.map((p) => ({
-          projectId: p.projectId.trim(),
-          problemMarkdown: p.problemMarkdown.trim(),
-        })),
+        id: contest.id,
+        input: {
+          id: contest.id,
+          title,
+          shortDescription,
+          topbarDescription: topbarDescription || undefined,
+          status,
+          participantCount: parseInt(participantCount) || 0,
+          timeLabel: timeLabel || 'Custom',
+          projects: projects.map((p) => ({
+            projectId: p.projectId.trim(),
+            problemMarkdown: p.problemMarkdown.trim(),
+          })),
+        },
       },
       {
         onSuccess: () => {
-          resetForm();
-          setOpen(false);
+          onOpenChange(false);
         },
       },
     );
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="default">
-          <PlusIcon className="size-4" />
-          Create Contest
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] p-0">
         <DialogHeader className="px-6 pt-6">
-          <DialogTitle>Create Your Contest</DialogTitle>
-          <DialogDescription>
-            Add contest details and define 1-3 projects with markdown content.
-          </DialogDescription>
+          <DialogTitle>Edit Contest</DialogTitle>
+          <DialogDescription>Update contest details and project information.</DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="max-h-[60vh] px-6">
@@ -253,11 +254,11 @@ export function CreateContestDialog() {
         </ScrollArea>
 
         <DialogFooter className="px-6 pb-6">
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isPending}>
             Cancel
           </Button>
-          <Button onClick={handleCreate} disabled={isPending}>
-            {isPending ? 'Creating...' : 'Create Contest'}
+          <Button onClick={handleUpdate} disabled={isPending}>
+            {isPending ? 'Updating...' : 'Update Contest'}
           </Button>
         </DialogFooter>
       </DialogContent>

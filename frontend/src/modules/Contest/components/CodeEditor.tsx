@@ -1,16 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ArrowsClockwiseIcon,
-  CircleNotchIcon,
-  FilePlusIcon,
-  FloppyDiskIcon,
-  FolderPlusIcon,
-} from '@phosphor-icons/react';
+import { ArrowsClockwiseIcon, CircleNotchIcon, FloppyDiskIcon } from '@phosphor-icons/react';
 import { toast } from 'sonner';
-import { Tree } from '@/components/ui/file-tree';
 import { Button } from '@/components/ui/button';
+import Loader from '@/shared/Loader/Loader';
 import {
   Dialog,
   DialogContent,
@@ -37,9 +32,17 @@ import {
   normalizeEditorPath,
   subscribeWebContainerFilesystem,
   useCodeEditorStore,
+  serializeWebContainerFs,
+  getInitialContestCodeSnapshot,
 } from '@/store/codeEditor';
+import { useContestContext } from '@/store/contestContext';
+import { useContest } from '@/hooks/useContests';
+import { useCodeByProject, useCreateCode, useUpdateCodeByProject } from '@/hooks/useCode';
 import { ContestMonacoEditor } from './ContestMonacoEditor';
 import { ContestWebTerminal } from './ContestWebTerminal';
+import { ContestFileTree } from './ContestFileTree';
+import { UploadCodebase } from './UploadCodebase';
+import { useCreateCodeSubmission } from '@/hooks/useCodeSubmissions';
 
 type CreateDialogMode = 'file' | 'folder';
 
@@ -60,6 +63,27 @@ const CodeEditor = () => {
   const createFolder = useCodeEditorStore((s) => s.createFolder);
   const webcontainer = useCodeEditorStore((s) => s.webcontainer);
 
+  // Contest context
+  const selectedProblemId = useContestContext((s) => s.selectedProblemId);
+  const contestId = useContestContext((s) => s.contestId);
+
+  // Get contest data to find project ID
+  const { data: contest } = useContest(contestId || 0);
+  const currentProject = contest?.projects?.find((p) => p.projectId === selectedProblemId);
+  const projectId = currentProject?.id;
+
+  // Backend code hooks - disable query when no projectId
+  const {
+    data: existingCode,
+    error: codeError,
+    isFetched,
+  } = useCodeByProject(projectId || 0, {
+    enabled: !!projectId,
+  });
+  const { mutate: createCode } = useCreateCode();
+  const { mutate: updateCode } = useUpdateCodeByProject();
+  const { mutate: submitCodebase, isPending: isSubmitting } = useCreateCodeSubmission();
+
   const [createDialog, setCreateDialog] = useState<CreateDialogMode | null>(null);
   const [createParentPath, setCreateParentPath] = useState('');
   const [createNameInput, setCreateNameInput] = useState('');
@@ -71,9 +95,9 @@ const CodeEditor = () => {
 
   useEffect(() => {
     void useCodeEditorStore.getState().boot();
-    return () => {
-      useCodeEditorStore.getState().teardown();
-    };
+    // IMPORTANT: Don't teardown on unmount.
+    // In dev (React StrictMode/HMR), effects can mount/unmount twice and WebContainer only allows a single instance.
+    return () => {};
   }, []);
 
   useEffect(() => {
@@ -83,6 +107,64 @@ const CodeEditor = () => {
     });
   }, [bootStatus, webcontainer]);
 
+  // Load code from backend when project changes
+  useEffect(() => {
+    const loadCodeFromBackend = async () => {
+      if (!webcontainer || bootStatus !== 'ready' || !projectId) return;
+      // Wait until GET /code/project/:id settles — avoid inserting before we know it's a 404
+      if (!isFetched) return;
+
+      const status = (codeError as any)?.response?.status as number | undefined;
+
+      // If code doesn't exist (404), create it first using INITIAL_CONTEST_FILE_TREE then mount it.
+      if (status === 404 || !existingCode?.code) {
+        const initialPayload = getInitialContestCodeSnapshot();
+
+        createCode(
+          {
+            projectId,
+            code: initialPayload as Record<string, any>,
+          },
+          {
+            onSuccess: async (created) => {
+              try {
+                await useCodeEditorStore
+                  .getState()
+                  .replaceWorkspace(((created?.code as any) ?? initialPayload) as any);
+              } catch (e) {
+                console.error('Failed to mount initialized code:', e);
+              }
+            },
+            onError: (e) => {
+              console.error('Failed to initialize code row:', e);
+              toast.error('Failed to initialize code workspace');
+            },
+          },
+        );
+        return;
+      }
+
+      // Any other error: show and keep current workspace
+      if (status && status !== 200) {
+        toast.error('Failed to load code workspace');
+        return;
+      }
+
+      try {
+        const codeTree = existingCode.code as any;
+        if (codeTree && typeof codeTree === 'object') {
+          await useCodeEditorStore.getState().replaceWorkspace(codeTree);
+          // toast.success('Code loaded from previous session');
+        }
+      } catch (error) {
+        console.error('Failed to load code from backend:', error);
+        toast.error('Failed to load saved code, using default');
+      }
+    };
+
+    void loadCodeFromBackend();
+  }, [projectId, existingCode, webcontainer, bootStatus, codeError, isFetched, createCode]);
+
   const handleSave = useCallback(async () => {
     const result = await save();
     if (result === 'error') {
@@ -90,9 +172,50 @@ const CodeEditor = () => {
       return;
     }
     if (result === 'written') {
-      toast.success('Saved');
+      // toast.success('Saved');
+
+      // Save to backend if we have a project selected
+      if (webcontainer && projectId) {
+        try {
+          const codeData = await serializeWebContainerFs(webcontainer);
+
+          if (existingCode) {
+            updateCode(
+              {
+                projectId,
+                input: { code: codeData },
+              },
+              {
+                onSuccess: () => {
+                  // console.log('Code synced to backend');
+                },
+                onError: () => {
+                  toast.error('Failed to sync code to backend');
+                },
+              },
+            );
+          } else {
+            createCode(
+              {
+                projectId,
+                code: codeData,
+              },
+              {
+                onSuccess: () => {
+                  console.log('Code saved to backend');
+                },
+                onError: () => {
+                  toast.error('Failed to save code to backend');
+                },
+              },
+            );
+          }
+        } catch (error) {
+          console.error('Failed to serialize code:', error);
+        }
+      }
     }
-  }, [save]);
+  }, [save, webcontainer, projectId, existingCode, createCode, updateCode]);
 
   const closeCreateDialog = useCallback(() => {
     setCreateDialog(null);
@@ -231,49 +354,71 @@ const CodeEditor = () => {
           )}
           <span className="truncate text-xs text-muted-foreground">{statusLabel}</span>
         </div>
-        <div className="flex shrink-0 items-center gap-1">
-          {bootStatus === 'ready' && (
-            <>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="size-8 text-muted-foreground hover:text-foreground"
-                title="New file"
-                aria-label="New file"
-                onClick={openCreateFileDialog}
-              >
-                <FilePlusIcon className="size-4" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="size-8 text-muted-foreground hover:text-foreground"
-                title="New folder"
-                aria-label="New folder"
-                onClick={openCreateFolderDialog}
-              >
-                <FolderPlusIcon className="size-4" />
-              </Button>
-            </>
-          )}
-          {bootStatus === 'error' && (
+        {bootStatus === 'ready' && (
+          <div className="flex items-center gap-2">
+            <UploadCodebase
+              projectId={projectId}
+              hasExistingCode={!!existingCode}
+              onPersist={async (tree) => {
+                if (!projectId) return;
+                await new Promise<void>((resolve, reject) => {
+                  if (existingCode) {
+                    updateCode(
+                      { projectId, input: { code: tree } },
+                      {
+                        onSuccess: () => resolve(),
+                        onError: () => reject(new Error('Update failed')),
+                      },
+                    );
+                  } else {
+                    createCode(
+                      { projectId, code: tree },
+                      {
+                        onSuccess: () => resolve(),
+                        onError: () => reject(new Error('Create failed')),
+                      },
+                    );
+                  }
+                });
+              }}
+            />
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="h-8 shrink-0 gap-1.5 text-muted-foreground hover:text-foreground"
-              onClick={() => {
-                teardown();
-                void boot();
+              className="h-8"
+              disabled={!projectId || !webcontainer || isSubmitting}
+              onClick={async () => {
+                if (!projectId || !webcontainer) return;
+                try {
+                  // Ensure current file is written to FS
+                  await useCodeEditorStore.getState().flushOpenFile();
+                  const tree = await serializeWebContainerFs(webcontainer);
+                  submitCodebase({ projectId, code: tree });
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : 'Failed to submit');
+                }
               }}
             >
-              <ArrowsClockwiseIcon className="size-4" />
-              Retry
+              {isSubmitting ? 'Submitting…' : 'Submit'}
             </Button>
-          )}
-        </div>
+          </div>
+        )}
+        {bootStatus === 'error' && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 shrink-0 gap-1.5 text-muted-foreground hover:text-foreground"
+            onClick={() => {
+              teardown();
+              void boot();
+            }}
+          >
+            <ArrowsClockwiseIcon className="size-4" />
+            Retry
+          </Button>
+        )}
       </div>
 
       <ResizablePanelGroup
@@ -284,27 +429,28 @@ const CodeEditor = () => {
         <ResizablePanel defaultSize={68} minSize={35} className="min-h-0">
           <div className="flex h-full min-h-0 flex-1">
             <aside className="flex w-54 shrink-0 flex-col border-r bg-muted/40">
-              <p className="shrink-0 px-2 py-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                Files
-              </p>
               <div className="min-h-0 flex-1">
                 {bootStatus === 'error' ? (
                   <p className="px-2 text-xs leading-relaxed text-destructive">{bootError}</p>
                 ) : bootStatus === 'booting' || bootStatus === 'idle' ? (
-                  <p className="px-2 text-xs text-muted-foreground">Loading file tree…</p>
-                ) : treeElements.length > 0 ? (
-                  <Tree
-                    key={treeRevision}
-                    className="h-full min-h-32"
-                    elements={treeElements}
-                    initialSelectedId={selectedFilePath ?? undefined}
-                    initialExpandedItems={expandedFolderIds}
-                    onSelectedIdChange={(id) => {
-                      if (id) void selectTreeId(id);
-                    }}
-                  />
+                  <div className="flex h-full min-h-[180px] items-center justify-center px-4">
+                    <Loader size="sm" message="Loading workspace…" className="gap-2" />
+                  </div>
                 ) : (
-                  <p className="px-2 text-xs text-muted-foreground">No files</p>
+                  <ContestFileTree
+                    treeElements={treeElements}
+                    treeRevision={treeRevision}
+                    selectedFilePath={selectedFilePath}
+                    expandedFolderIds={expandedFolderIds}
+                    onSelect={(id) => void selectTreeId(id)}
+                    onNewFile={openCreateFileDialog}
+                    onNewFolder={openCreateFolderDialog}
+                    onRename={(oldPath, newPath) =>
+                      useCodeEditorStore.getState().renamePath(oldPath, newPath)
+                    }
+                    onDelete={(path) => useCodeEditorStore.getState().deletePath(path)}
+                    afterFilesystemChange={() => useCodeEditorStore.getState().refreshTreeFromFs()}
+                  />
                 )}
               </div>
             </aside>

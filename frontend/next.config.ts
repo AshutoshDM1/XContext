@@ -10,7 +10,9 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: '/contests/:contestId',
+        // WebContainer requires SharedArrayBuffer → crossOriginIsolated.
+        // Apply to all routes to avoid navigation / nested-path misses.
+        source: '/:path*',
         headers: crossOriginIsolationHeaders,
       },
     ];

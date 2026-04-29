@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Globe, Loader } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { signIn, useSession } from '@/lib/auth-client';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import GoogleIcon from '@/components/icons/google';
 
 export default function Login() {
   return (
@@ -37,12 +38,12 @@ function LoginBrandPanel() {
         aria-hidden
       />
 
-      <div className="relative mx-auto flex max-w-md flex-col items-center gap-8 text-center lg:mx-0 lg:items-start lg:text-left">
+      <div className="relative mx-auto flex max-w-xl flex-col items-center gap-8 text-center lg:mx-0 lg:items-start lg:text-left">
         <div className="space-y-4">
           <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
             XContext
           </p>
-          <h1 className="text-balance text-3xl leading-tight font-semibold tracking-tight text-foreground sm:text-4xl lg:text-[2.25rem] lg:leading-snug uppercase">
+          <h1 className="text-balance text-3xl leading-tight font-semibold tracking-tight text-foreground sm:text-4xl lg:text-[2.25rem] lg:leading-snug uppercase font-sans">
             From &ldquo;It works&rdquo; to &ldquo;I can explain it.&rdquo;
           </h1>
           <p className="text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
@@ -80,15 +81,15 @@ function LoginForm() {
   console.log(session);
   const [isLoading, setIsLoading] = useState(false);
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 select-none">
       <header className="space-y-1">
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground font-sans">
           Sign in to XContext
         </h2>
         <p className="text-sm text-muted-foreground">Connect with:</p>
       </header>
 
-      <div className="border border-border bg-card p-6 text-card-foreground sm:p-8">
+      <div className="text-card-foreground">
         <div className="space-y-6">
           {session ? (
             <div className="space-y-4">
@@ -105,39 +106,26 @@ function LoginForm() {
           ) : (
             <div className="space-y-6">
               <Button
+                disabled={isLoading}
                 type="button"
                 variant="outline"
                 className="h-11 w-full justify-center gap-2 border-border bg-background text-foreground hover:bg-muted/60"
                 onClick={() => {
                   setIsLoading(true);
-                  signIn
-                    .social({
-                      provider: 'google',
-                    })
-                    .then(() => {
-                      setIsLoading(false);
-                    })
-                    .catch(() => {
-                      setIsLoading(false);
-                    })
-                    .finally(() => {
-                      setIsLoading(false);
-                    });
+                  signIn.social({
+                    provider: 'google',
+                  });
                 }}
               >
                 {isLoading ? (
                   <Loader className="size-5 animate-spin" aria-hidden />
                 ) : (
                   <>
-                    <Globe className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+                    <GoogleIcon className="size-5" />
                     <span>Continue with Google</span>
                   </>
                 )}
               </Button>
-
-              <p className="text-center text-[11px] leading-relaxed text-muted-foreground">
-                By continuing, you agree to the app using cookies to keep you signed in.
-              </p>
             </div>
           )}
         </div>

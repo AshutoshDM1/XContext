@@ -46,7 +46,11 @@ export default function Contest({ contestId }: ContestProps) {
             className="h-full min-h-[calc(100dvh-14rem)]"
           >
             <ResizablePanel defaultSize={50} minSize={25} className="min-h-0">
-              <CodeDoc title={contest.title} projects={contest.projects} />
+              <CodeDoc
+                title={contest.title}
+                projects={contest.projects}
+                contestId={contestIdNumber}
+              />
             </ResizablePanel>
             <ResizableHandle withHandle className="w-1.5 bg-border" />
             <ResizablePanel defaultSize={50} minSize={25} className="min-h-0">

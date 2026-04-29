@@ -1,19 +1,27 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  getAllContests,
+  getUserContests,
   getContestById,
   createContest,
   updateContest,
   deleteContest,
   type CreateContestInput,
   type UpdateContestInput,
+  getPublicContests,
 } from '../services/contests.service';
 import { toast } from 'sonner';
 
-export const useContests = () => {
+export const useUserContests = () => {
   return useQuery({
     queryKey: ['contests'],
-    queryFn: getAllContests,
+    queryFn: getUserContests,
+  });
+};
+
+export const usePublicContests = () => {
+  return useQuery({
+    queryKey: ['public-contests'],
+    queryFn: getPublicContests,
   });
 };
 
@@ -48,6 +56,7 @@ export const useUpdateContest = () => {
       updateContest(id, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contests'] });
+      queryClient.invalidateQueries({ queryKey: ['public-contests'] });
       toast.success('Contest updated successfully!');
     },
     onError: () => {
@@ -63,6 +72,7 @@ export const useDeleteContest = () => {
     mutationFn: (id: number) => deleteContest(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contests'] });
+      queryClient.invalidateQueries({ queryKey: ['public-contests'] });
       toast.success('Contest deleted successfully!');
     },
     onError: () => {

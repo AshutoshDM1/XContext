@@ -20,10 +20,11 @@ const corsOptions = {
     'X-CSRF-Token',
     'X-Better-Auth-CSRF',
   ],
+  exposedHeaders: ['Set-Cookie'],
 };
 
 app.use(cors(corsOptions));
-app.all('/api/auth/{*any}', toNodeHandler(auth));
+app.all('/api/auth/*splat', toNodeHandler(auth));
 
 app.use(express.json());
 app.use('/api/v1', router);
@@ -33,5 +34,5 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server is running on port http://localhost:${port}`);
+  console.log(`Server is running on port ${process.env.BETTER_AUTH_URL}`);
 });

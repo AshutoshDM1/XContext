@@ -1,0 +1,27 @@
+---
+description: Don't create markdown documentation files unless explicitly requested
+alwaysApply: true
+---
+
+# Markdown File Creation Policy
+
+**NEVER create .md files unless the user explicitly asks for them.**
+
+This includes:
+- README.md
+- Documentation files
+- API documentation
+- Implementation summaries
+- Guide files
+- Any other .md files
+
+## Exception
+
+Only create .md files when the user specifically requests:
+- "Create a README"
+- "Document this in markdown"
+- "Make a .md file for..."
+
+## Why
+
+Users prefer to control when documentation is created. Proactively generating documentation files clutters the workspace and may not align with their documentation strategy.

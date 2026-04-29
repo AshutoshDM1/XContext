@@ -35,6 +35,7 @@ type TreeContextProps = {
   openIcon?: React.ReactNode;
   closeIcon?: React.ReactNode;
   direction: 'rtl' | 'ltr';
+  renderActions?: (element: TreeViewElement) => React.ReactNode;
 };
 
 const TreeContext = createContext<TreeContextProps | null>(null);
@@ -118,6 +119,7 @@ const renderTreeElements = (elements: TreeViewElement[], sort: TreeSortMode): Re
           key={element.id}
           value={element.id}
           element={element.name}
+          treeElement={element}
           isSelectable={element.isSelectable}
         >
           {Array.isArray(element.children) ? renderTreeElements(element.children, sort) : null}
@@ -126,8 +128,13 @@ const renderTreeElements = (elements: TreeViewElement[], sort: TreeSortMode): Re
     }
 
     return (
-      <File key={element.id} value={element.id} isSelectable={element.isSelectable}>
-        <span>{element.name}</span>
+      <File
+        key={element.id}
+        value={element.id}
+        isSelectable={element.isSelectable}
+        treeElement={element}
+      >
+        {element.name}
       </File>
     );
   });
@@ -142,6 +149,8 @@ type TreeViewProps = {
   sort?: TreeSortMode;
   /** Fires after a tree item (file or folder) is selected in the UI. */
   onSelectedIdChange?: (id: string | undefined) => void;
+  /** Optional actions renderer shown on row hover (right side). */
+  renderActions?: (element: TreeViewElement) => React.ReactNode;
 } & Omit<
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Root>,
   'defaultValue' | 'onValueChange' | 'type' | 'value'
@@ -160,6 +169,7 @@ const Tree = forwardRef<HTMLDivElement, TreeViewProps>(
       closeIcon,
       sort = 'default',
       onSelectedIdChange,
+      renderActions,
       dir,
       ...props
     },
@@ -236,6 +246,7 @@ const Tree = forwardRef<HTMLDivElement, TreeViewProps>(
           openIcon,
           closeIcon,
           direction,
+          renderActions,
         }}
       >
         <div className={cn('size-full', className)}>
@@ -283,10 +294,14 @@ type FolderProps = {
   element: string;
   isSelectable?: boolean;
   isSelect?: boolean;
+  treeElement?: TreeViewElement;
 } & React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Item>;
 
 const Folder = forwardRef<HTMLDivElement, FolderProps & React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, element, value, isSelectable = true, isSelect, children, ...props }, ref) => {
+  (
+    { className, element, value, isSelectable = true, isSelect, treeElement, children, ...props },
+    ref,
+  ) => {
     const {
       direction,
       handleExpand,
@@ -296,6 +311,7 @@ const Folder = forwardRef<HTMLDivElement, FolderProps & React.HTMLAttributes<HTM
       selectItem,
       openIcon,
       closeIcon,
+      renderActions,
     } = useTree();
     const isSelected = isSelect ?? selectedId === value;
 
@@ -307,7 +323,7 @@ const Folder = forwardRef<HTMLDivElement, FolderProps & React.HTMLAttributes<HTM
         className="relative h-full overflow-hidden"
       >
         <AccordionPrimitive.Trigger
-          className={cn(`flex items-center gap-1 rounded-md text-sm`, className, {
+          className={cn(`group flex w-full items-center gap-1 rounded-md text-sm`, className, {
             'bg-muted rounded-md': isSelected && isSelectable,
             'cursor-pointer': isSelectable,
             'cursor-not-allowed opacity-50': !isSelectable,
@@ -321,7 +337,16 @@ const Folder = forwardRef<HTMLDivElement, FolderProps & React.HTMLAttributes<HTM
           {expandedItems?.includes(value)
             ? (openIcon ?? <FolderOpenIcon className="size-4" />)
             : (closeIcon ?? <FolderIcon className="size-4" />)}
-          <span>{element}</span>
+          <span className="min-w-0 flex-1 truncate text-left">{element}</span>
+          {treeElement && renderActions ? (
+            <span
+              className="ml-auto inline-flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              {renderActions(treeElement)}
+            </span>
+          ) : null}
         </AccordionPrimitive.Trigger>
         <AccordionPrimitive.Content className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down relative h-full overflow-hidden text-sm">
           {element && indicator && <TreeIndicator aria-hidden="true" />}
@@ -349,6 +374,7 @@ const File = forwardRef<
     isSelectable?: boolean;
     isSelect?: boolean;
     fileIcon?: React.ReactNode;
+    treeElement?: TreeViewElement;
   } & React.ButtonHTMLAttributes<HTMLButtonElement>
 >(
   (
@@ -360,12 +386,13 @@ const File = forwardRef<
       isSelectable = true,
       isSelect,
       fileIcon,
+      treeElement,
       children,
       ...props
     },
     ref,
   ) => {
-    const { direction, selectedId, selectItem } = useTree();
+    const { direction, selectedId, selectItem, renderActions } = useTree();
     const isSelected = isSelect ?? selectedId === value;
     return (
       <button
@@ -373,7 +400,7 @@ const File = forwardRef<
         type="button"
         disabled={!isSelectable}
         className={cn(
-          'flex w-fit items-center gap-1 rounded-md pr-1 text-sm duration-200 ease-in-out rtl:pr-0 rtl:pl-1',
+          'group flex w-full items-center gap-1 rounded-md pr-1 text-sm duration-200 ease-in-out rtl:pr-0 rtl:pl-1',
           {
             'bg-muted': isSelected && isSelectable,
           },
@@ -389,7 +416,16 @@ const File = forwardRef<
         {...props}
       >
         {fileIcon ?? <FileIcon className="size-4" />}
-        {children}
+        <span className="min-w-0 flex-1 truncate text-left">{children}</span>
+        {treeElement && renderActions ? (
+          <span
+            className="ml-auto inline-flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            {renderActions(treeElement)}
+          </span>
+        ) : null}
       </button>
     );
   },
