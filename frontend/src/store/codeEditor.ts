@@ -1,7 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from 'zustand';
 import type { WebContainer } from '@webcontainer/api';
 import type { DirectoryNode, FileSystemAPI, FileSystemTree } from '@webcontainer/api';
 import type { TreeViewElement } from '@/components/ui/file-tree';
+
+declare global {
+  var __xcontext_webcontainer__: WebContainer | undefined;
+  var __xcontext_webcontainer_boot_promise__: Promise<WebContainer> | undefined;
+}
 
 const FOLDER_ID_PREFIX = 'folder:';
 
@@ -165,6 +171,23 @@ export function findFirstFilePath(elements: TreeViewElement[]): string | undefin
   return undefined;
 }
 
+/** Prefer `src/index.ts` when present, else fall back to first file. */
+export function pickDefaultFilePath(elements: TreeViewElement[]): string | undefined {
+  const preferred = 'src/index.ts';
+  const hasPreferred = (nodes: TreeViewElement[]): boolean => {
+    for (const el of nodes) {
+      if (el.children?.length) {
+        if (hasPreferred(el.children)) return true;
+      } else if (!el.id.startsWith(FOLDER_ID_PREFIX) && el.id === preferred) {
+        return true;
+      }
+    }
+    return false;
+  };
+  if (hasPreferred(elements)) return preferred;
+  return findFirstFilePath(elements);
+}
+
 export function normalizeEditorPath(raw: string): string {
   const t = raw.trim().replace(/\\/g, '/').replace(/^\/+/, '');
   if (!t || t.includes('..')) {
@@ -247,6 +270,7 @@ type CodeEditorState = {
   createFolder: (rawPath: string) => Promise<void>;
   renamePath: (oldPath: string, newPath: string) => Promise<void>;
   deletePath: (path: string) => Promise<void>;
+  replaceWorkspace: (tree: FileSystemTree) => Promise<void>;
 };
 
 export const useCodeEditorStore = create<CodeEditorState>((set, get) => ({
@@ -260,10 +284,10 @@ export const useCodeEditorStore = create<CodeEditorState>((set, get) => ({
   isDirty: false,
 
   teardown: () => {
-    const { webcontainer } = get();
-    if (webcontainer) {
-      webcontainer.teardown();
-    }
+    const wc = get().webcontainer ?? globalThis.__xcontext_webcontainer__;
+    if (wc) wc.teardown();
+    globalThis.__xcontext_webcontainer__ = undefined;
+    globalThis.__xcontext_webcontainer_boot_promise__ = undefined;
     set({
       webcontainer: null,
       bootStatus: 'idle',
@@ -281,15 +305,44 @@ export const useCodeEditorStore = create<CodeEditorState>((set, get) => ({
     if (webcontainer && bootStatus === 'ready') return;
     if (bootStatus === 'booting') return;
 
+    // WebContainer requires cross-origin isolation (SharedArrayBuffer).
+    // If we boot without it, the browser can throw and the runtime may refuse further instances.
+    if (typeof globalThis !== 'undefined' && (globalThis as any).crossOriginIsolated === false) {
+      set({
+        webcontainer: null,
+        bootStatus: 'error',
+        bootError:
+          'WebContainer requires cross-origin isolation. Ensure COOP/COEP headers are set so window.crossOriginIsolated === true, then reload.',
+        treeElements: [],
+        treeRevision: 0,
+        selectedFilePath: null,
+        editorValue: '',
+        isDirty: false,
+      });
+      return;
+    }
+
     set({ bootStatus: 'booting', bootError: null });
 
     try {
       const { WebContainer } = await import('@webcontainer/api');
-      const treeElements = fileSystemTreeToViewElements(INITIAL_CONTEST_FILE_TREE);
-      const wc = await WebContainer.boot({ coep: 'require-corp' });
-      await wc.mount(INITIAL_CONTEST_FILE_TREE);
+      const existing = globalThis.__xcontext_webcontainer__;
 
-      const firstFile = findFirstFilePath(treeElements);
+      const wc =
+        existing ??
+        (await (globalThis.__xcontext_webcontainer_boot_promise__ ??
+          (globalThis.__xcontext_webcontainer_boot_promise__ = (async () => {
+            const created = await WebContainer.boot({ coep: 'require-corp' });
+            await created.mount(INITIAL_CONTEST_FILE_TREE);
+            globalThis.__xcontext_webcontainer__ = created;
+            return created;
+          })())));
+
+      // If we reused an already-booted container, rebuild the tree from FS.
+      const treeRoot = await readFsTree(wc.fs, '.');
+      const treeElements = fileSystemTreeToViewElements(treeRoot);
+
+      const firstFile = pickDefaultFilePath(treeElements);
       let editorValue = '';
       let selectedFilePath: string | null = null;
 
@@ -437,7 +490,6 @@ export const useCodeEditorStore = create<CodeEditorState>((set, get) => ({
     await get().flushOpenFile();
     try {
       // @webcontainer/api supports fs.rename in recent versions
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const fsAny = webcontainer.fs as any;
       if (typeof fsAny.rename === 'function') {
         await fsAny.rename(from, to);
@@ -462,7 +514,6 @@ export const useCodeEditorStore = create<CodeEditorState>((set, get) => ({
     const p = normalizeEditorPath(path);
     await get().flushOpenFile();
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const fsAny = webcontainer.fs as any;
       if (typeof fsAny.rm === 'function') {
         await fsAny.rm(p, { recursive: true, force: true });
@@ -478,6 +529,62 @@ export const useCodeEditorStore = create<CodeEditorState>((set, get) => ({
     if (selectedFilePath && (selectedFilePath === p || selectedFilePath.startsWith(`${p}/`))) {
       set({ selectedFilePath: null, editorValue: '', isDirty: false });
     }
+  },
+
+  replaceWorkspace: async (tree: FileSystemTree) => {
+    const { webcontainer, bootStatus } = get();
+    if (!webcontainer || bootStatus !== 'ready') return;
+
+    await get().flushOpenFile();
+
+    // Clear workdir without deleting "."
+    const fsAny = webcontainer.fs as any;
+    try {
+      const entries = await webcontainer.fs.readdir('.', { withFileTypes: true });
+      for (const ent of entries) {
+        const name =
+          typeof ent.name === 'string'
+            ? ent.name
+            : new TextDecoder().decode(ent.name as Uint8Array);
+        if (!name || name === '.' || name === '..') continue;
+        try {
+          if (typeof fsAny.rm === 'function') {
+            await fsAny.rm(name, { recursive: true, force: true });
+          } else if (ent.isDirectory?.()) {
+            // fallback
+            await fsAny.rmdir?.(name, { recursive: true });
+          } else {
+            await fsAny.unlink?.(name);
+          }
+        } catch {
+          /* best-effort cleanup */
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+
+    await webcontainer.mount(tree);
+
+    const treeRoot = await readFsTree(webcontainer.fs, '.');
+    const treeElements = fileSystemTreeToViewElements(treeRoot);
+    const firstFile = pickDefaultFilePath(treeElements) ?? null;
+    let editorValue = '';
+    if (firstFile) {
+      try {
+        editorValue = await webcontainer.fs.readFile(firstFile, 'utf-8');
+      } catch {
+        editorValue = '';
+      }
+    }
+
+    set((s) => ({
+      treeElements,
+      treeRevision: s.treeRevision + 1,
+      selectedFilePath: firstFile,
+      editorValue,
+      isDirty: false,
+    }));
   },
 }));
 

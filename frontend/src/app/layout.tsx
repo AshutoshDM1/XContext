@@ -32,7 +32,7 @@ export default function RootLayout({
       <body>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <QueryProvider>
-            <Toaster richColors position="top-right" />
+            <Toaster position="top-right" offset={5} />
             <ThemeToggle />
             <main className="min-h-dvh">
               <Navbar />

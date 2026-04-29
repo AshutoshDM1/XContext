@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowsClockwiseIcon, CircleNotchIcon, FloppyDiskIcon } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import Loader from '@/shared/Loader/Loader';
 import {
   Dialog,
   DialogContent,
@@ -33,7 +34,6 @@ import {
   useCodeEditorStore,
   serializeWebContainerFs,
   getInitialContestCodeSnapshot,
-  findFirstFilePath,
 } from '@/store/codeEditor';
 import { useContestContext } from '@/store/contestContext';
 import { useContest } from '@/hooks/useContests';
@@ -41,6 +41,8 @@ import { useCodeByProject, useCreateCode, useUpdateCodeByProject } from '@/hooks
 import { ContestMonacoEditor } from './ContestMonacoEditor';
 import { ContestWebTerminal } from './ContestWebTerminal';
 import { ContestFileTree } from './ContestFileTree';
+import { UploadCodebase } from './UploadCodebase';
+import { useCreateCodeSubmission } from '@/hooks/useCodeSubmissions';
 
 type CreateDialogMode = 'file' | 'folder';
 
@@ -80,6 +82,7 @@ const CodeEditor = () => {
   });
   const { mutate: createCode } = useCreateCode();
   const { mutate: updateCode } = useUpdateCodeByProject();
+  const { mutate: submitCodebase, isPending: isSubmitting } = useCreateCodeSubmission();
 
   const [createDialog, setCreateDialog] = useState<CreateDialogMode | null>(null);
   const [createParentPath, setCreateParentPath] = useState('');
@@ -92,9 +95,9 @@ const CodeEditor = () => {
 
   useEffect(() => {
     void useCodeEditorStore.getState().boot();
-    return () => {
-      useCodeEditorStore.getState().teardown();
-    };
+    // IMPORTANT: Don't teardown on unmount.
+    // In dev (React StrictMode/HMR), effects can mount/unmount twice and WebContainer only allows a single instance.
+    return () => {};
   }, []);
 
   useEffect(() => {
@@ -125,10 +128,9 @@ const CodeEditor = () => {
           {
             onSuccess: async (created) => {
               try {
-                await webcontainer.mount((created?.code ?? initialPayload) as any);
-                await useCodeEditorStore.getState().refreshTreeFromFs();
-                const first = findFirstFilePath(useCodeEditorStore.getState().treeElements);
-                if (first) await useCodeEditorStore.getState().selectTreeId(first);
+                await useCodeEditorStore
+                  .getState()
+                  .replaceWorkspace(((created?.code as any) ?? initialPayload) as any);
               } catch (e) {
                 console.error('Failed to mount initialized code:', e);
               }
@@ -149,14 +151,10 @@ const CodeEditor = () => {
       }
 
       try {
-        // Mount the code from backend (mount replaces workspace contents)
         const codeTree = existingCode.code as any;
         if (codeTree && typeof codeTree === 'object') {
-          await webcontainer.mount(codeTree);
-          await useCodeEditorStore.getState().refreshTreeFromFs();
-          const first = findFirstFilePath(useCodeEditorStore.getState().treeElements);
-          if (first) await useCodeEditorStore.getState().selectTreeId(first);
-          toast.success('Code loaded from previous session');
+          await useCodeEditorStore.getState().replaceWorkspace(codeTree);
+          // toast.success('Code loaded from previous session');
         }
       } catch (error) {
         console.error('Failed to load code from backend:', error);
@@ -174,7 +172,7 @@ const CodeEditor = () => {
       return;
     }
     if (result === 'written') {
-      toast.success('Saved');
+      // toast.success('Saved');
 
       // Save to backend if we have a project selected
       if (webcontainer && projectId) {
@@ -189,7 +187,7 @@ const CodeEditor = () => {
               },
               {
                 onSuccess: () => {
-                  console.log('Code synced to backend');
+                  // console.log('Code synced to backend');
                 },
                 onError: () => {
                   toast.error('Failed to sync code to backend');
@@ -356,6 +354,56 @@ const CodeEditor = () => {
           )}
           <span className="truncate text-xs text-muted-foreground">{statusLabel}</span>
         </div>
+        {bootStatus === 'ready' && (
+          <div className="flex items-center gap-2">
+            <UploadCodebase
+              projectId={projectId}
+              hasExistingCode={!!existingCode}
+              onPersist={async (tree) => {
+                if (!projectId) return;
+                await new Promise<void>((resolve, reject) => {
+                  if (existingCode) {
+                    updateCode(
+                      { projectId, input: { code: tree } },
+                      {
+                        onSuccess: () => resolve(),
+                        onError: () => reject(new Error('Update failed')),
+                      },
+                    );
+                  } else {
+                    createCode(
+                      { projectId, code: tree },
+                      {
+                        onSuccess: () => resolve(),
+                        onError: () => reject(new Error('Create failed')),
+                      },
+                    );
+                  }
+                });
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8"
+              disabled={!projectId || !webcontainer || isSubmitting}
+              onClick={async () => {
+                if (!projectId || !webcontainer) return;
+                try {
+                  // Ensure current file is written to FS
+                  await useCodeEditorStore.getState().flushOpenFile();
+                  const tree = await serializeWebContainerFs(webcontainer);
+                  submitCodebase({ projectId, code: tree });
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : 'Failed to submit');
+                }
+              }}
+            >
+              {isSubmitting ? 'Submitting…' : 'Submit'}
+            </Button>
+          </div>
+        )}
         {bootStatus === 'error' && (
           <Button
             type="button"
@@ -385,7 +433,9 @@ const CodeEditor = () => {
                 {bootStatus === 'error' ? (
                   <p className="px-2 text-xs leading-relaxed text-destructive">{bootError}</p>
                 ) : bootStatus === 'booting' || bootStatus === 'idle' ? (
-                  <p className="px-2 text-xs text-muted-foreground">Loading file tree…</p>
+                  <div className="flex h-full min-h-[180px] items-center justify-center px-4">
+                    <Loader size="sm" message="Loading workspace…" className="gap-2" />
+                  </div>
                 ) : (
                   <ContestFileTree
                     treeElements={treeElements}

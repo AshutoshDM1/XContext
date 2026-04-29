@@ -87,3 +87,37 @@ export const contestRelations = relations(contest, ({ one, many }) => ({
   }),
   projects: many(project),
 }));
+
+export const codeSubmission = pgTable(
+  'code_submission',
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    code: jsonb('code').notNull(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    projectId: integer('project_id')
+      .notNull()
+      .references(() => project.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('code_submission_userId_idx').on(table.userId),
+    index('code_submission_projectId_idx').on(table.projectId),
+  ],
+);
+
+export const codeSubmissionRelations = relations(codeSubmission, ({ one }) => ({
+  user: one(user, {
+    fields: [codeSubmission.userId],
+    references: [user.id],
+  }),
+  project: one(project, {
+    fields: [codeSubmission.projectId],
+    references: [project.id],
+  }),
+}));

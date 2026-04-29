@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import type { Project } from '@/store/contests';
 import { useContestContext } from '@/store/contestContext';
+import { useCodeSubmissions } from '@/hooks/useCodeSubmissions';
 
 export type CodeDocProps = {
   title: string;
@@ -76,6 +77,7 @@ const CodeDoc = ({ title, projects, contestId }: CodeDocProps) => {
   const setSelectedProblem = useContestContext((s) => s.setSelectedProblem);
 
   const selectedProject = projects.find((p) => p.projectId === selectedProjectId) || projects[0];
+  const { data: submissions, isLoading: isSubmissionsLoading } = useCodeSubmissions({ contestId });
 
   // Update context when selected project changes
   useEffect(() => {
@@ -152,8 +154,39 @@ const CodeDoc = ({ title, projects, contestId }: CodeDocProps) => {
           className="mt-0 flex min-h-0 flex-1 flex-col overflow-hidden data-[state=inactive]:hidden"
         >
           <ScrollArea className="min-h-0 flex-1 overflow-auto">
-            <div className="px-4 py-10 text-center text-sm text-muted-foreground">
-              No submissions yet
+            <div className="px-4 py-6">
+              {isSubmissionsLoading ? (
+                <div className="py-10 text-center text-sm text-muted-foreground">Loading…</div>
+              ) : submissions && submissions.length > 0 ? (
+                <div className="space-y-3">
+                  {submissions.map((s) => {
+                    const idx = projects.findIndex((p) => p.id === s.projectId);
+                    const label = idx >= 0 ? `Problem ${idx + 1}` : `Problem`;
+                    return (
+                      <div
+                        key={s.id}
+                        className="flex items-center justify-between gap-3 rounded-none border border-border bg-background/60 px-4 py-3"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-sm font-medium text-foreground">
+                            Submission #{s.id}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(s.createdAt).toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-xs text-muted-foreground">
+                          {s.projectName ? `${label} • ${s.projectName}` : label}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="py-10 text-center text-sm text-muted-foreground">
+                  No submissions yet
+                </div>
+              )}
             </div>
           </ScrollArea>
         </TabsContent>

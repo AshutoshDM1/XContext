@@ -49,7 +49,8 @@ export function EditContestDialog({ contest, open, onOpenChange }: EditContestDi
   const [projects, setProjects] = useState<ProjectInput[]>(contest.projects);
 
   useEffect(() => {
-    if (open) {
+    if (!open) return;
+    const sync = () => {
       setTitle(contest.title);
       setShortDescription(contest.shortDescription);
       setTopbarDescription(contest.topbarDescription || '');
@@ -57,7 +58,8 @@ export function EditContestDialog({ contest, open, onOpenChange }: EditContestDi
       setTimeLabel(contest.timeLabel);
       setParticipantCount(String(contest.participantCount));
       setProjects(contest.projects);
-    }
+    };
+    queueMicrotask(sync);
   }, [open, contest]);
 
   const addProject = () => {
@@ -98,6 +100,7 @@ export function EditContestDialog({ contest, open, onOpenChange }: EditContestDi
       {
         id: contest.id,
         input: {
+          id: contest.id,
           title,
           shortDescription,
           topbarDescription: topbarDescription || undefined,

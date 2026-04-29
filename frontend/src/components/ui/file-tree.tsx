@@ -134,7 +134,7 @@ const renderTreeElements = (elements: TreeViewElement[], sort: TreeSortMode): Re
         isSelectable={element.isSelectable}
         treeElement={element}
       >
-        <span className="truncate">{element.name}</span>
+        {element.name}
       </File>
     );
   });
@@ -340,7 +340,7 @@ const Folder = forwardRef<HTMLDivElement, FolderProps & React.HTMLAttributes<HTM
           <span className="min-w-0 flex-1 truncate text-left">{element}</span>
           {treeElement && renderActions ? (
             <span
-              className="ml-auto inline-flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
+              className="ml-auto inline-flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
               onClick={(e) => e.stopPropagation()}
               onMouseDown={(e) => e.stopPropagation()}
             >
@@ -419,7 +419,7 @@ const File = forwardRef<
         <span className="min-w-0 flex-1 truncate text-left">{children}</span>
         {treeElement && renderActions ? (
           <span
-            className="ml-auto inline-flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
+            className="ml-auto inline-flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100"
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
           >
