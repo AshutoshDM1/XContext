@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PlusIcon, TrashIcon, PencilIcon } from '@phosphor-icons/react';
+import { PlusIcon, TrashIcon } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -224,7 +224,7 @@ export function EditContestDialog({ contest, open, onOpenChange }: EditContestDi
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor={`projectId-${index}`}>Project ID *</Label>
+                    <Label htmlFor={`projectId-${index}`}>Project Name *</Label>
                     <Input
                       id={`projectId-${index}`}
                       placeholder="e.g., todo-app-project"

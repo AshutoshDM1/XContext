@@ -7,16 +7,18 @@ import {
   deleteContest,
   getPublicContests,
 } from '@/controllers/contest/contest.controllers';
-import { authenticate } from '@/middleware/authentication';
+import { authenticate, optionalAuthenticate } from '@/middleware/authentication';
 
 const router = Router();
 
-router.use(authenticate);
+// Public routes
+router.get('/public', getPublicContests);
+router.get('/:id', optionalAuthenticate, getContestById);
 
+// Private routes
+router.use(authenticate);
 router.post('/', createContest);
 router.get('/', getContests);
-router.get('/public', getPublicContests);
-router.get('/:id', getContestById);
 router.put('/:id', updateContest);
 router.delete('/:id', deleteContest);
 

@@ -226,7 +226,7 @@ export function CreateContestDialog() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor={`projectId-${index}`}>Project ID *</Label>
+                    <Label htmlFor={`projectId-${index}`}>Project Name *</Label>
                     <Input
                       id={`projectId-${index}`}
                       placeholder="e.g., todo-app-project"

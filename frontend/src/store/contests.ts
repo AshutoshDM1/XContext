@@ -1,8 +1,10 @@
 export type ContestStatus = 'LIVE' | 'ENDED';
 
 export interface Project {
+  id?: number;
   projectId: string;
   problemMarkdown: string;
+  contestId?: number;
 }
 
 export interface Contest {

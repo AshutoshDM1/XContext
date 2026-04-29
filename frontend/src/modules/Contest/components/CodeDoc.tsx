@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ComponentProps } from 'react';
+import { useState, useEffect, type ComponentProps } from 'react';
 import { CopyIcon } from '@phosphor-icons/react';
 import ReactMarkdown from 'react-markdown';
 import { toast } from 'sonner';
@@ -9,10 +9,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import type { Project } from '@/store/contests';
+import { useContestContext } from '@/store/contestContext';
 
 export type CodeDocProps = {
   title: string;
   projects: Project[];
+  contestId: number;
 };
 
 const mdComponents = {
@@ -69,10 +71,18 @@ const mdComponents = {
   ),
 };
 
-const CodeDoc = ({ title, projects }: CodeDocProps) => {
+const CodeDoc = ({ title, projects, contestId }: CodeDocProps) => {
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projects[0]?.projectId || '');
+  const setSelectedProblem = useContestContext((s) => s.setSelectedProblem);
 
   const selectedProject = projects.find((p) => p.projectId === selectedProjectId) || projects[0];
+
+  // Update context when selected project changes
+  useEffect(() => {
+    if (selectedProjectId && contestId) {
+      setSelectedProblem(selectedProjectId, contestId);
+    }
+  }, [selectedProjectId, contestId, setSelectedProblem]);
 
   const copyProblem = async () => {
     try {

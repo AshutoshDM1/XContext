@@ -30,6 +30,11 @@ export const INITIAL_CONTEST_FILE_TREE: FileSystemTree = {
   },
 };
 
+/** Deep snapshot of INITIAL_CONTEST_FILE_TREE for DB/API — matches WebContainer boot exactly. */
+export function getInitialContestCodeSnapshot(): FileSystemTree {
+  return JSON.parse(JSON.stringify(INITIAL_CONTEST_FILE_TREE)) as FileSystemTree;
+}
+
 function isDirectoryNode(node: FileSystemTree[keyof FileSystemTree]): node is DirectoryNode {
   return 'directory' in node;
 }
@@ -148,7 +153,7 @@ export function joinParentAndFilename(parent: string, name: string): string {
   return `${p}/${n}`;
 }
 
-function findFirstFilePath(elements: TreeViewElement[]): string | undefined {
+export function findFirstFilePath(elements: TreeViewElement[]): string | undefined {
   for (const el of elements) {
     if (el.children?.length) {
       const nested = findFirstFilePath(el.children);
@@ -200,6 +205,17 @@ async function readFsTree(fs: FileSystemAPI, dirPath: string): Promise<FileSyste
   return tree;
 }
 
+/** Export the entire WebContainer filesystem as JSON-serializable structure */
+export async function serializeWebContainerFs(webcontainer: WebContainer): Promise<FileSystemTree> {
+  try {
+    const tree = await readFsTree(webcontainer.fs, '.');
+    return tree;
+  } catch (error) {
+    console.error('Failed to serialize WebContainer filesystem:', error);
+    return {};
+  }
+}
+
 async function ensureParentDirs(fs: FileSystemAPI, filePath: string): Promise<void> {
   const normalized = filePath.replace(/\\/g, '/');
   const slash = normalized.lastIndexOf('/');
@@ -229,6 +245,8 @@ type CodeEditorState = {
   save: () => Promise<'written' | 'noop' | 'error'>;
   createFile: (rawPath: string) => Promise<'created' | 'opened'>;
   createFolder: (rawPath: string) => Promise<void>;
+  renamePath: (oldPath: string, newPath: string) => Promise<void>;
+  deletePath: (path: string) => Promise<void>;
 };
 
 export const useCodeEditorStore = create<CodeEditorState>((set, get) => ({
@@ -409,6 +427,57 @@ export const useCodeEditorStore = create<CodeEditorState>((set, get) => ({
       throw new Error(e instanceof Error ? e.message : 'Could not create folder');
     }
     await get().refreshTreeFromFs();
+  },
+
+  renamePath: async (oldPath: string, newPath: string) => {
+    const { webcontainer, bootStatus, selectedFilePath } = get();
+    if (!webcontainer || bootStatus !== 'ready') return;
+    const from = normalizeEditorPath(oldPath);
+    const to = normalizeEditorPath(newPath);
+    await get().flushOpenFile();
+    try {
+      // @webcontainer/api supports fs.rename in recent versions
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const fsAny = webcontainer.fs as any;
+      if (typeof fsAny.rename === 'function') {
+        await fsAny.rename(from, to);
+      } else {
+        throw new Error('Rename is not supported in this environment');
+      }
+    } catch (e) {
+      throw new Error(e instanceof Error ? e.message : 'Could not rename');
+    }
+    await get().refreshTreeFromFs();
+    if (
+      selectedFilePath &&
+      (selectedFilePath === from || selectedFilePath.startsWith(`${from}/`))
+    ) {
+      set({ selectedFilePath: null, editorValue: '', isDirty: false });
+    }
+  },
+
+  deletePath: async (path: string) => {
+    const { webcontainer, bootStatus, selectedFilePath } = get();
+    if (!webcontainer || bootStatus !== 'ready') return;
+    const p = normalizeEditorPath(path);
+    await get().flushOpenFile();
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const fsAny = webcontainer.fs as any;
+      if (typeof fsAny.rm === 'function') {
+        await fsAny.rm(p, { recursive: true, force: true });
+      } else if (typeof fsAny.unlink === 'function') {
+        await fsAny.unlink(p);
+      } else {
+        throw new Error('Delete is not supported in this environment');
+      }
+    } catch (e) {
+      throw new Error(e instanceof Error ? e.message : 'Could not delete');
+    }
+    await get().refreshTreeFromFs();
+    if (selectedFilePath && (selectedFilePath === p || selectedFilePath.startsWith(`${p}/`))) {
+      set({ selectedFilePath: null, editorValue: '', isDirty: false });
+    }
   },
 }));
 

@@ -2,8 +2,10 @@ import { baseApi } from './api';
 import { toast } from 'sonner';
 
 export interface Project {
+  id?: number;
   projectId: string;
   problemMarkdown: string;
+  contestId?: number;
 }
 
 export interface Contest {

@@ -4,7 +4,18 @@ import { contest } from '@/db/schema';
 
 const SEED_USER_ID = '6yjaFy0Cmi4Y5CciAwC0bmBagpcizFVY'; // Replace with actual user ID from your database
 
-const contestsData = [
+// NOTE: seed contests only (0 projects for now)
+const contestsData: Array<{
+  userId: string;
+  title: string;
+  shortDescription: string;
+  topbarDescription: string;
+  status: 'LIVE' | 'ENDED';
+  participantCount: number;
+  timeLabel: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}> = [
   {
     userId: SEED_USER_ID,
     title: 'SuperTeam x 100xDevs March Bounty Contest',
@@ -15,79 +26,6 @@ const contestsData = [
     status: 'ENDED',
     participantCount: 427,
     timeLabel: '08:34 PM – 10:34 PM',
-    projects: [
-      {
-        projectId: 'solana-address-book',
-        problemMarkdown: `# Solana Address Book (Easy)
-
-Build a REST API for managing Solana addresses. Detect whether each address is a **wallet** or a **PDA**, and verify ownership where applicable.
-
-## Requirements
-
-- Persist contacts in a database or in-memory store (your choice for the bounty).
-- Validate Solana address format before accepting a contact.
-
-## Contacts CRUD
-
-\`POST /api/contacts\` — Add a contact
-
-**Body:** \`{ "name": string, "address": string }\`
-
-**Response 201:** \`{ "id": number, "name": string, "address": string, "type": "wallet" | "pda", "createdAt": string }\`
-
-\`GET /api/contacts\` — List contacts
-
-**Query param:** \`?type=wallet\` or \`?type=pda\` to filter by detected type.
-
-\`GET /api/contacts/:id\` — Fetch one contact
-
-\`PATCH /api/contacts/:id\` — Update name or address (re-validate on address change)
-
-\`DELETE /api/contacts/:id\` — Remove a contact
-
-## Edge cases
-
-- Reject invalid base58 / wrong length addresses with **400**.
-- If the same address is submitted twice, return **409** or upsert — document your choice in the README.`,
-      },
-      {
-        projectId: 'pda-registry',
-        problemMarkdown: `# PDA Registry (Medium)
-
-Implement a service that registers PDAs for a fixed program id. Store **program id**, **seeds** (as byte arrays or base64), **bump**, and **derived address**.
-
-## Endpoints
-
-\`POST /api/pdas\` — Register a PDA (must verify bump is canonical)
-
-\`GET /api/pdas?program=\` — List PDAs for a program
-
-\`GET /api/pdas/:address\` — Lookup by derived address
-
-## Requirements
-
-- Canonical bump check on every registration.
-- Return **404** when no record exists.`,
-      },
-      {
-        projectId: 'multisig-vault',
-        problemMarkdown: `# Multi-sig Vault (Hard)
-
-Model a vault with **M-of-N** approvers. Support **create proposal**, **approve**, **execute**, and **cancel** flows.
-
-## API sketch
-
-\`POST /api/vaults\` — Create vault with signer pubkeys and threshold M
-
-\`POST /api/vaults/:id/proposals\` — Create transfer proposal
-
-\`POST /api/vaults/:id/proposals/:pid/approve\` — Record approval from a signer
-
-\`POST /api/vaults/:id/proposals/:pid/execute\` — Execute when threshold met and timelock elapsed
-
-Return **403** for unauthorized signers and **409** for invalid state transitions.`,
-      },
-    ],
   },
   {
     userId: SEED_USER_ID,
@@ -99,27 +37,6 @@ Return **403** for unauthorized signers and **409** for invalid state transition
     status: 'LIVE',
     participantCount: 128,
     timeLabel: 'Live now',
-    projects: [
-      {
-        projectId: 'pda-registry-project-1',
-        problemMarkdown: `# PDA Registry (Medium)
-
-Implement a service that registers PDAs for a fixed program id. Store **program id**, **seeds** (as byte arrays or base64), **bump**, and **derived address**.
-
-## Endpoints
-
-\`POST /api/pdas\` — Register a PDA (must verify bump is canonical)
-
-\`GET /api/pdas?program=\` — List PDAs for a program
-
-\`GET /api/pdas/:address\` — Lookup by derived address
-
-## Requirements
-
-- Canonical bump check on every registration.
-- Return **404** when no record exists.`,
-      },
-    ],
   },
   {
     userId: SEED_USER_ID,
@@ -131,26 +48,19 @@ Implement a service that registers PDAs for a fixed program id. Store **program 
     status: 'ENDED',
     participantCount: 89,
     timeLabel: 'Mar 12 – Mar 19',
-    projects: [
-      {
-        projectId: 'multisig-vault-solo',
-        problemMarkdown: `# Multi-sig Vault (Hard)
-
-Model a vault with **M-of-N** approvers. Support **create proposal**, **approve**, **execute**, and **cancel** flows.
-
-## API sketch
-
-\`POST /api/vaults\` — Create vault with signer pubkeys and threshold M
-
-\`POST /api/vaults/:id/proposals\` — Create transfer proposal
-
-\`POST /api/vaults/:id/proposals/:pid/approve\` — Record approval from a signer
-
-\`POST /api/vaults/:id/proposals/:pid/execute\` — Execute when threshold met and timelock elapsed
-
-Return **403** for unauthorized signers and **409** for invalid state transitions.`,
-      },
-    ],
+  },
+  {
+    userId: SEED_USER_ID,
+    title: 'JS Promise Orchestrator ',
+    shortDescription:
+      'Master JavaScript promises with retries, concurrency limits, chaining, and failure recovery.',
+    topbarDescription:
+      'Build robust async systems using Promise.all, race, retries, queues, cancellation, and timeout handling.',
+    status: 'LIVE',
+    participantCount: 10,
+    timeLabel: 'Apr 01 – Apr 08',
+    createdAt: new Date('2026-04-29T09:00:17.782Z'),
+    updatedAt: new Date('2026-04-29T12:55:28.897Z'),
   },
 ];
 
