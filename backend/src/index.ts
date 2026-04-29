@@ -24,8 +24,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Enable pre-flight for all routes
-app.all('/api/auth/*', toNodeHandler(auth));
+app.all('/api/auth/*splat', toNodeHandler(auth));
 
 app.use(express.json());
 app.use('/api/v1', router);
@@ -35,5 +34,5 @@ app.get('/', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server is running on port http://localhost:${port}`);
+  console.log(`Server is running on port ${process.env.BETTER_AUTH_URL}`);
 });

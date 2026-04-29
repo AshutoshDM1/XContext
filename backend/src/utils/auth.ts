@@ -3,6 +3,8 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import db from './db';
 import { origins } from './origins';
 
+const isProduction = process.env.BETTER_AUTH_URL === 'https://xcontext-backend.elitedev.space';
+
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   url: process.env.BETTER_AUTH_URL,
@@ -11,9 +13,9 @@ export const auth = betterAuth({
   },
   trustedOrigins: origins,
   advanced: {
-    useSecureCookies: true,
+    useSecureCookies: isProduction,
     crossSubDomainCookies: {
-      enabled: true,
+      enabled: isProduction,
       domain: `elitedev.space`,
     },
   },
