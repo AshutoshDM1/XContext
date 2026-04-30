@@ -36,7 +36,7 @@ const Navbar = () => {
             .filter((l) => (session ? l.href !== '/login' : true))
             .map((link) => (
               <Link key={link.href} href={link.href}>
-                <Button variant="outline" className="h-10 w-full">
+                <Button variant="outline" className="w-full">
                   <link.icon className="size-4" />
                   {link.label}
                 </Button>

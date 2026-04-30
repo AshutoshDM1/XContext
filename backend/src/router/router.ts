@@ -5,6 +5,7 @@ import contestRouter from './contest.router';
 import problemRouter from './problem.router';
 import codeRouter from './code.router';
 import codeSubmissionRouter from './codeSubmission.router';
+import interviewRouter from './interview.router';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use('/contests', contestRouter);
 router.use('/problems', problemRouter);
 router.use('/code', codeRouter);
 router.use('/code-submissions', codeSubmissionRouter);
+router.use('/interviews', interviewRouter);
 
 export default router;

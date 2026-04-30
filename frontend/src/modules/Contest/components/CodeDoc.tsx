@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import type { Project } from '@/store/contests';
 import { useContestContext } from '@/store/contestContext';
 import { useCodeSubmissions } from '@/hooks/useCodeSubmissions';
+import AiInterviewLauncher from './AiInterviewLauncher';
 
 export type CodeDocProps = {
   title: string;
@@ -103,23 +104,31 @@ const CodeDoc = ({ title, projects, contestId }: CodeDocProps) => {
         className="flex min-h-0 flex-1 flex-col gap-0"
       >
         <div className="shrink-0 border-b px-4 pt-3">
-          <TabsList className="h-9 w-fit gap-0 rounded-none border bg-muted p-0">
-            {projects.map((project, index) => (
+          <div className="flex items-center justify-between gap-3">
+            <TabsList className="h-9 w-fit gap-0 rounded-none border bg-muted p-0">
+              {projects.map((project, index) => (
+                <TabsTrigger
+                  key={project.projectId}
+                  value={project.projectId}
+                  className="rounded-none px-4 text-xs text-muted-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-background data-[state=active]:text-foreground"
+                >
+                  Problem {index + 1}
+                </TabsTrigger>
+              ))}
               <TabsTrigger
-                key={project.projectId}
-                value={project.projectId}
+                value="submissions"
                 className="rounded-none px-4 text-xs text-muted-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-background data-[state=active]:text-foreground"
               >
-                Problem {index + 1}
+                Submissions
               </TabsTrigger>
-            ))}
-            <TabsTrigger
-              value="submissions"
-              className="rounded-none px-4 text-xs text-muted-foreground data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-background data-[state=active]:text-foreground"
-            >
-              Submissions
-            </TabsTrigger>
-          </TabsList>
+            </TabsList>
+
+            <AiInterviewLauncher
+              projects={projects}
+              submissions={submissions}
+              isLoadingSubmissions={isSubmissionsLoading}
+            />
+          </div>
         </div>
 
         {projects.map((project) => (
@@ -169,14 +178,14 @@ const CodeDoc = ({ title, projects, contestId }: CodeDocProps) => {
                       >
                         <div className="min-w-0">
                           <div className="text-sm font-medium text-foreground">
-                            Submission #{s.id}
+                            Submission #{s.sequence} of {label}
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {new Date(s.createdAt).toLocaleString()}
                           </div>
                         </div>
                         <div className="shrink-0 text-xs text-muted-foreground">
-                          {s.projectName ? `${label} • ${s.projectName}` : label}
+                          {s.projectName ? s.projectName : label}
                         </div>
                       </div>
                     );

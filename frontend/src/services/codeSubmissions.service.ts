@@ -6,6 +6,7 @@ export type CodeSubmission = {
   id: number;
   userId: string;
   projectId: number;
+  sequence: number;
   projectName?: string;
   createdAt: string;
   updatedAt: string;

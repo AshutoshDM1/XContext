@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { and, eq, desc } from 'drizzle-orm';
+import { and, eq, desc, sql } from 'drizzle-orm';
 import db from '@/utils/db';
 import { code, codeSubmission, contest, project } from '@/db/schema';
 import asyncHandler from '@/utils/asyncHandler';
@@ -44,12 +44,22 @@ export const createCodeSubmission = asyncHandler(async (req: Request, res: Respo
     });
   }
 
+  const nextSeqRows = await db
+    .select({ maxSeq: sql<number | null>`max(${codeSubmission.sequence})` })
+    .from(codeSubmission)
+    .where(
+      and(eq(codeSubmission.userId, userId), eq(codeSubmission.projectId, validated.projectId)),
+    );
+  const maxSeq = nextSeqRows[0]?.maxSeq ?? null;
+  const nextSequence = (maxSeq ?? 0) + 1;
+
   const [created] = await db
     .insert(codeSubmission)
     .values({
       userId,
       projectId: validated.projectId,
       code: validated.code,
+      sequence: nextSequence,
     })
     .returning();
 
@@ -79,6 +89,7 @@ export const getCodeSubmissions = asyncHandler(async (req: Request, res: Respons
       id: codeSubmission.id,
       userId: codeSubmission.userId,
       projectId: codeSubmission.projectId,
+      sequence: codeSubmission.sequence,
       projectName: project.projectId,
       createdAt: codeSubmission.createdAt,
       updatedAt: codeSubmission.updatedAt,
