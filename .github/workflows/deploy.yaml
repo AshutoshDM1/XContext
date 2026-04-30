@@ -2,7 +2,7 @@ name: Deploy Backend (DO VM)
 
 on:
   push:
-    branches: [main]
+    branches: [fix/deploy]
     paths:
       - "backend/**"
       - ".github/workflows/deploy.yaml"
