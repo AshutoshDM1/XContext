@@ -1,0 +1,41 @@
+name: Deploy Backend (DO VM)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy.yaml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: SSH deploy backend
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          port: 22
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd "$HOME/XContext/backend"
+
+            git stash push -u -m "ci-deploy-$(date -u +%Y%m%dT%H%M%SZ)" || true
+            git fetch origin main
+            git pull --ff-only origin main
+
+            bun install --frozen-lockfile
+            bun run build
+
+            pm2 restart xcontext-backend --update-env
+            pm2 save
