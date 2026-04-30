@@ -4,8 +4,8 @@ on:
   push:
     branches: [fix/deploy]
     paths:
-      - "backend/**"
-      - ".github/workflows/deploy.yaml"
+      - 'backend/**'
+      - '.github/workflows/deploy.yaml'
   workflow_dispatch: {}
 
 concurrency:
@@ -47,5 +47,20 @@ jobs:
             bun install --frozen-lockfile
             bun run build
 
-            pm2 restart xcontext-backend --update-env
+            # Ensure Node/PM2 are on PATH (common setups: nvm, global npm, system)
+            export PATH="$HOME/.bun/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+
+            # Load nvm if present (PM2 is often installed there)
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
+            # nvm use --lts || true
+
+            if ! command -v pm2 >/dev/null 2>&1; then
+              echo "pm2 not found on PATH. PATH=$PATH"
+              exit 127
+            fi
+            pm2 -v
+
+            pm2 restart 10
             pm2 save
