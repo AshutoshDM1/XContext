@@ -20,7 +20,10 @@ export const answerInterviewQuestionSchema = z.object({
   answer: z.string().min(1, 'Answer is required'),
 });
 
+export const generateInterviewQuestionSchema = z.object({});
+
 export type CreateInterviewInput = z.infer<typeof createInterviewSchema>;
 export type UpdateInterviewInput = z.infer<typeof updateInterviewSchema>;
 export type AddInterviewQuestionInput = z.infer<typeof addInterviewQuestionSchema>;
 export type AnswerInterviewQuestionInput = z.infer<typeof answerInterviewQuestionSchema>;
+export type GenerateInterviewQuestionInput = z.infer<typeof generateInterviewQuestionSchema>;

@@ -5,6 +5,7 @@ import {
   answerInterviewQuestion,
   createInterview,
   deleteInterview,
+  generateInterviewQuestion,
   getInterviewById,
   getInterviews,
   updateInterview,
@@ -20,6 +21,7 @@ router.get('/:id', getInterviewById);
 router.put('/:id', updateInterview);
 router.delete('/:id', deleteInterview);
 
+router.post('/:id/generate-question', generateInterviewQuestion);
 router.post('/:id/questions', addInterviewQuestion);
 router.put('/:id/questions/:questionAnswerId/answer', answerInterviewQuestion);
 

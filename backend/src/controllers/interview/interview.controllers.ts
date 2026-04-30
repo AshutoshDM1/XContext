@@ -10,12 +10,39 @@ import {
   interviewQuestionAnswer,
   project,
 } from '@/db/schema';
+import { generateSingleQuestion } from '@/controllers/ai-question/ai-question.controllers';
 import {
   addInterviewQuestionSchema,
   answerInterviewQuestionSchema,
   createInterviewSchema,
+  generateInterviewQuestionSchema,
   updateInterviewSchema,
 } from './validation';
+
+const MAX_INTERVIEW_QUESTIONS = 8;
+const INTERVIEW_QUESTION_SYSTEM = `You are a senior software engineer conducting a codebase interview.
+Generate exactly ONE interview question based on the provided context, and also provide a detailed explanation of what the interviewer is looking for.
+
+Output format MUST be Markdown with these sections:
+1) "## Question" (the question only)
+2) "## What I'm evaluating" (2-5 bullets)
+3) "## Context to consider" (short paragraph referencing the provided problem(s)/code)
+
+Rules:
+- One question only (no multi-part A/B/C).
+- Must be JavaScript/TypeScript focused.
+- Must reference something concrete from the provided problem statements and/or the submitted code.
+- Do NOT include the answer or hints for how to solve it.
+- Avoid repeating previous questions (use the previous Q&A context).`;
+
+function safeStringify(value: unknown, maxChars: number): string {
+  try {
+    const s = JSON.stringify(value);
+    return s.length > maxChars ? `${s.slice(0, maxChars)}…` : s;
+  } catch {
+    return '[unserializable]';
+  }
+}
 
 export const createInterview = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as AuthenticatedRequest).user.id;
@@ -62,6 +89,133 @@ export const createInterview = asyncHandler(async (req: Request, res: Response) 
       latestCodeSubmissionId: x.latest!.id,
     })),
   );
+
+  res.status(201).json(created);
+});
+
+export const generateInterviewQuestion = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req as AuthenticatedRequest).user.id;
+  const interviewId = Number(req.params.id);
+  generateInterviewQuestionSchema.parse(req.body ?? {});
+
+  const row = await db.query.interview.findFirst({
+    where: (i, { and, eq }) => and(eq(i.id, interviewId), eq(i.userId, userId)),
+    with: {
+      interviewProjects: {
+        with: {
+          project: {
+            with: {
+              contest: true,
+            },
+          },
+          latestCodeSubmission: true,
+        },
+      },
+      questionAnswers: {
+        orderBy: (qa, { asc }) => [asc(qa.sequence)],
+      },
+    },
+  });
+
+  if (!row) {
+    res.status(404).json({ message: 'Interview not found' });
+    return;
+  }
+
+  const existingCount = row.questionAnswers?.length ?? 0;
+  if (existingCount >= MAX_INTERVIEW_QUESTIONS) {
+    res.status(400).json({ message: `Max questions reached (${MAX_INTERVIEW_QUESTIONS})` });
+    return;
+  }
+
+  const contest = row.interviewProjects?.[0]?.project?.contest;
+  const contestTitle = contest?.title ?? 'Unknown contest';
+  const contestShort = contest?.shortDescription ?? '';
+  const contestTopbar = contest?.topbarDescription ?? '';
+  const contestTimeLabel = contest?.timeLabel ?? '';
+  const problems = (row.interviewProjects ?? []).map((ip) => ({
+    problemName: ip.project.projectId,
+    problemMarkdown: ip.project.problemMarkdown,
+    submissionSequence: (ip.latestCodeSubmission as any)?.sequence,
+    codeSnapshot: ip.latestCodeSubmission?.code,
+  }));
+
+  const previousQA = (row.questionAnswers ?? []).map((qa) => ({
+    sequence: qa.sequence,
+    question: qa.question,
+    answer: qa.answer ?? '',
+  }));
+  const nextNumber = existingCount + 1;
+
+  const prompt = [
+    `Contest: ${contestTitle}`,
+    contestShort ? `Contest short description: ${contestShort}` : '',
+    contestTopbar ? `Contest context: ${contestTopbar}` : '',
+    contestTimeLabel ? `Contest time label: ${contestTimeLabel}` : '',
+    `Question number: ${nextNumber}/${MAX_INTERVIEW_QUESTIONS}`,
+    ``,
+    `Problems included:`,
+    ...problems.map((p, idx) => {
+      const md =
+        p.problemMarkdown.length > 2500
+          ? `${p.problemMarkdown.slice(0, 2500)}…`
+          : p.problemMarkdown;
+      const code = safeStringify(p.codeSnapshot, 6000);
+      return [
+        `Problem ${idx + 1}: ${p.problemName} (latest submission #${p.submissionSequence ?? '?'})`,
+        `Problem statement (markdown):`,
+        md,
+        `Code snapshot (json, truncated):`,
+        code,
+        ``,
+      ].join('\n');
+    }),
+    previousQA.length > 0
+      ? [
+          `Previous Q&A (avoid repeating and build on this):`,
+          ...previousQA.map((qa) =>
+            [
+              `Q${qa.sequence}:`,
+              qa.question,
+              qa.answer ? `Answer given:\n${qa.answer}` : `Answer given: (not answered)`,
+              ``,
+            ].join('\n'),
+          ),
+        ].join('\n')
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  let questionText: string;
+  try {
+    questionText = await generateSingleQuestion({
+      system: INTERVIEW_QUESTION_SYSTEM,
+      prompt,
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(503).json({ message: 'Failed to generate question' });
+    return;
+  }
+
+  // Mark interview started at first question.
+  if (!row.startedAt) {
+    await db
+      .update(interview)
+      .set({ startedAt: new Date(), status: 'IN_PROGRESS' })
+      .where(and(eq(interview.id, interviewId), eq(interview.userId, userId)));
+  }
+
+  const [created] = await db
+    .insert(interviewQuestionAnswer)
+    .values({
+      interviewId,
+      sequence: nextNumber,
+      question: questionText,
+      answer: null,
+    })
+    .returning();
 
   res.status(201).json(created);
 });

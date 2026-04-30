@@ -1,8 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
+  answerInterviewQuestion,
   createInterview,
+  generateInterviewQuestion,
   getInterviewById,
+  updateInterview,
   type CreateInterviewInput,
 } from '@/services/interviews.service';
 
@@ -25,6 +28,45 @@ export const useCreateInterview = () => {
     },
     onError: () => {
       toast.error('Failed to start interview');
+    },
+  });
+};
+
+export const useGenerateInterviewQuestion = (interviewId: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => generateInterviewQuestion(interviewId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['interview', interviewId] });
+    },
+    onError: () => toast.error('Failed to generate question'),
+  });
+};
+
+export const useAnswerInterviewQuestion = (interviewId: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { questionAnswerId: number; answer: string }) =>
+      answerInterviewQuestion({
+        interviewId,
+        questionAnswerId: input.questionAnswerId,
+        answer: input.answer,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['interview', interviewId] });
+      toast.success('Answer saved');
+    },
+    onError: () => toast.error('Failed to save answer'),
+  });
+};
+
+export const useUpdateInterview = (interviewId: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { status?: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' }) =>
+      updateInterview(interviewId, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['interview', interviewId] });
     },
   });
 };

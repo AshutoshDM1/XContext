@@ -20,17 +20,28 @@ if (!apiKey) {
   throw new Error('AI Gateway is not configured (AI_GATEWAY_API_KEY).');
 }
 
+export async function generateSingleQuestion(options: {
+  system: string;
+  prompt: string;
+}): Promise<string> {
+  const gateway = createGateway({ apiKey });
+  const { text } = await generateText({
+    model: gateway(DEFAULT_MODEL),
+    system: options.system,
+    prompt: options.prompt,
+  });
+  return text.trim();
+}
+
 export const getAiQuestionController = asyncHandler(async (req: Request, res: Response) => {
   const { topic } = getAiQuestionSchema.parse(req.body);
 
   try {
-    const gateway = createGateway({ apiKey });
-    const { text } = await generateText({
-      model: gateway(DEFAULT_MODEL),
+    const question = await generateSingleQuestion({
       system: JS_TS_QUESTION_SYSTEM,
       prompt: `Topic: ${topic}`,
     });
-    res.json({ question: text.trim() });
+    res.json({ question });
   } catch (error) {
     console.error(error);
     res.status(503).json({ message: 'Failed to generate question' });

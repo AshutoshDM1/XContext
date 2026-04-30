@@ -1,22 +1,71 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { useInterview } from '@/hooks/useInterviews';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  useAnswerInterviewQuestion,
+  useGenerateInterviewQuestion,
+  useInterview,
+  useUpdateInterview,
+} from '@/hooks/useInterviews';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import Section from '@/shared/Section/Section';
 import Loader from '@/shared/Loader/Loader';
 import ToolTopbar from '@/modules/Contest/components/ToolTopbar';
+import InterviewSidebar from './components/InterviewSidebar';
+import InterviewRightPanel from './components/InterviewRightPanel';
+import EndedDailog from './components/EndedDailog';
 
 const Interview = ({ interviewId }: { interviewId: string }) => {
   const interviewIdNumber = useMemo(() => Number(interviewId), [interviewId]);
   const { data: interview, isLoading } = useInterview(interviewIdNumber, {
     enabled: Number.isFinite(interviewIdNumber) && interviewIdNumber > 0,
   });
+  const { mutateAsync: generateQuestion, isPending: isGenerating } =
+    useGenerateInterviewQuestion(interviewIdNumber);
+  const { mutateAsync: saveAnswer, isPending: isSavingAnswer } =
+    useAnswerInterviewQuestion(interviewIdNumber);
+  const { mutate: updateInterview } = useUpdateInterview(interviewIdNumber);
 
   const [answerDraft, setAnswerDraft] = useState('');
+  const [now, setNow] = useState(() => Date.now());
+  const [dismissedEndedDialog, setDismissedEndedDialog] = useState(false);
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const totalQuestions = 8;
+  const questions = interview?.questionAnswers ?? [];
+  const currentQuestion = questions.length > 0 ? questions[questions.length - 1] : null;
+  const currentUnanswered = currentQuestion && !currentQuestion.answer ? currentQuestion : null;
+
+  const startedAtMs = interview?.startedAt ? new Date(interview.startedAt).getTime() : null;
+  const totalMs = 10 * 60 * 1000;
+  const remainingMs = startedAtMs === null ? totalMs : Math.max(0, totalMs - (now - startedAtMs));
+  const remainingSec = Math.floor(remainingMs / 1000);
+  const mm = String(Math.floor(remainingSec / 60)).padStart(2, '0');
+  const ss = String(remainingSec % 60).padStart(2, '0');
+  const timeLabel = `${mm}:${ss}`;
+
+  const canGenerateNext = remainingMs > 0 && questions.length < totalQuestions && !isGenerating;
+  const canAnswer = remainingMs > 0 && !!currentUnanswered && !isSavingAnswer;
+  const allAnswered = questions.length > 0 && questions.every((q) => !!q.answer);
+  const ended =
+    remainingMs === 0 ||
+    (questions.length >= totalQuestions && allAnswered) ||
+    interview?.status === 'COMPLETED';
+
+  useEffect(() => {
+    if (!interview) return;
+    if (ended && interview.status !== 'COMPLETED') {
+      updateInterview({ status: 'COMPLETED' });
+    }
+  }, [ended, interview, updateInterview]);
+
+  const endedDialogOpen = Boolean(
+    interview && interview.status === 'COMPLETED' && !dismissedEndedDialog,
+  );
 
   if (isLoading) {
     return (
@@ -37,149 +86,52 @@ const Interview = ({ interviewId }: { interviewId: string }) => {
   }
 
   return (
-    <Section className="py-6">
-      <main className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-none border bg-background">
+    <Section className="py-6 overflow-hidden">
+      <main className="flex h-[calc(100dvh-8.5rem)] min-h-0 flex-1 flex-col overflow-hidden rounded-none border bg-background">
         <ToolTopbar title={interview.title} description={interview.description} />
-
-        <div className="min-h-0 flex-1">
-          <ResizablePanelGroup
-            orientation="horizontal"
-            className="h-full min-h-[calc(100dvh-14rem)]"
-          >
-            <ResizablePanel defaultSize={55} minSize={25} className="min-h-0">
-              <div className="flex h-full min-h-0 flex-col">
-                <div className="shrink-0 border-b px-4 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-foreground">Questions</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {interview.questionAnswers?.length ?? 0} total
-                      </p>
-                    </div>
-                    <div className="shrink-0 text-xs text-muted-foreground">
-                      Status: {interview.status}
-                    </div>
-                  </div>
-                </div>
-
-                <ScrollArea className="min-h-0 flex-1">
-                  <div className="space-y-3 px-4 py-4">
-                    {interview.interviewProjects && interview.interviewProjects.length > 0 ? (
-                      <div className="rounded-none border bg-background/60 p-4">
-                        <div className="text-xs text-muted-foreground">
-                          Problems in this interview
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {interview.interviewProjects.map((ip) => (
-                            <span
-                              key={ip.id}
-                              className="inline-flex items-center rounded-none border bg-muted/40 px-2 py-1 text-xs text-foreground"
-                            >
-                              {ip.project.projectId} (latest submission #
-                              {ip.latestCodeSubmission.sequence})
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null}
-                    {interview.questionAnswers && interview.questionAnswers.length > 0 ? (
-                      interview.questionAnswers.map((qa) => (
-                        <div key={qa.id} className="rounded-none border bg-background/60 p-4">
-                          <div className="text-xs text-muted-foreground">
-                            Question {qa.sequence}
-                          </div>
-                          <div className="mt-1 text-sm text-foreground">{qa.question}</div>
-                          <div className="mt-3 border-t pt-3">
-                            <div className="text-xs text-muted-foreground">Answer</div>
-                            <div className="mt-1 text-sm text-foreground">
-                              {qa.answer ? (
-                                qa.answer
-                              ) : (
-                                <span className="text-muted-foreground">Not answered yet</span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="rounded-none border border-dashed bg-muted/20 p-6 text-center">
-                        <p className="text-sm font-medium text-foreground">No questions yet</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          Click “Start question” to generate the first one.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
-              </div>
+        <EndedDailog
+          open={endedDialogOpen}
+          onOpenChange={setDismissedEndedDialog}
+          onClose={() => setDismissedEndedDialog(true)}
+        />
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <ResizablePanelGroup orientation="horizontal" className="h-full">
+            <ResizablePanel defaultSize={45} minSize={25} className="min-h-0 overflow-hidden">
+              <InterviewSidebar
+                interview={interview}
+                totalQuestions={totalQuestions}
+                timeLabel={timeLabel}
+                showTimerNote={!startedAtMs}
+              />
             </ResizablePanel>
 
             <ResizableHandle withHandle className="w-1.5 bg-border" />
 
-            <ResizablePanel defaultSize={45} minSize={25} className="min-h-0">
-              <div className="flex h-full min-h-0 flex-col">
-                <div className="shrink-0 border-b px-4 py-3">
-                  <p className="text-sm font-semibold text-foreground">Interview panel</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Dummy UI for now (start question + answer input)
-                  </p>
-                </div>
-
-                <div className="min-h-0 flex-1 p-4">
-                  <div className="flex h-full min-h-0 flex-col rounded-none border bg-muted/10">
-                    <div className="shrink-0 border-b p-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-foreground">
-                            Current question
-                          </p>
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            This will show the AI-generated question.
-                          </p>
-                        </div>
-                        <Button type="button" size="sm" className="h-8 rounded-none">
-                          Start question
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="min-h-0 flex-1 p-4">
-                      <div className="h-full rounded-none border border-dashed bg-background/40 p-4">
-                        <p className="text-xs text-muted-foreground">Question area</p>
-                        <p className="mt-2 text-sm text-foreground">
-                          Once wired, this will display the generated prompt based on contest,
-                          problem, and code submission.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 border-t p-4">
-                      <div className="grid gap-2">
-                        <Textarea
-                          value={answerDraft}
-                          onChange={(e) => setAnswerDraft(e.target.value)}
-                          placeholder="Type your answer..."
-                          className="min-h-24 resize-none"
-                        />
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-8 rounded-none"
-                            onClick={() => setAnswerDraft('')}
-                          >
-                            Clear
-                          </Button>
-                          <Button type="button" size="sm" className="h-8 rounded-none" disabled>
-                            Send
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+            <ResizablePanel defaultSize={65} minSize={25} className="min-h-0 overflow-hidden">
+              <InterviewRightPanel
+                questionsCount={questions.length}
+                totalQuestions={totalQuestions}
+                currentQuestion={currentQuestion}
+                answerDraft={answerDraft}
+                setAnswerDraft={setAnswerDraft}
+                canGenerateNext={canGenerateNext && !ended}
+                isGenerating={isGenerating}
+                onGenerateNext={async () => {
+                  if (ended) return;
+                  await generateQuestion();
+                }}
+                canAnswer={canAnswer && !ended}
+                isSavingAnswer={isSavingAnswer}
+                onSendAnswer={async () => {
+                  if (!currentUnanswered || ended) return;
+                  const trimmed = answerDraft.trim();
+                  if (!trimmed) return;
+                  await saveAnswer({ questionAnswerId: currentUnanswered.id, answer: trimmed });
+                  setAnswerDraft('');
+                }}
+                onClear={() => setAnswerDraft('')}
+                ended={ended}
+              />
             </ResizablePanel>
           </ResizablePanelGroup>
         </div>

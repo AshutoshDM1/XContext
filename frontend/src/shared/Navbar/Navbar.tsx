@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { GithubLogoIcon, TrophyIcon, UserIcon } from '@phosphor-icons/react';
+import { BookOpenIcon, GithubLogoIcon, TrophyIcon, UserIcon } from '@phosphor-icons/react';
 import Section from '../Section/Section';
 import Profile from './Profile';
 import { useSession } from '@/lib/auth-client';
@@ -18,6 +18,11 @@ const Navbar = () => {
       label: 'Contests',
       href: '/contests',
       icon: TrophyIcon,
+    },
+    {
+      label: 'Interviews',
+      href: '/interviews',
+      icon: BookOpenIcon,
     },
     {
       label: 'Login',

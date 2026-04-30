@@ -17,20 +17,24 @@ import { Label } from '@/components/ui/label';
 import { useCreateInterview } from '@/hooks/useInterviews';
 import type { Project } from '@/store/contests';
 import type { CodeSubmission } from '@/services/codeSubmissions.service';
+import useUser from '@/hooks/useUser';
 
 type Props = {
   projects: Project[];
   submissions: CodeSubmission[] | undefined;
   isLoadingSubmissions?: boolean;
+  contestTitle: string;
 };
 
 export default function AiInterviewLauncher({
   projects,
   submissions,
   isLoadingSubmissions,
+  contestTitle,
 }: Props) {
   const router = useRouter();
   const { mutateAsync: createInterview, isPending: isStartingInterview } = useCreateInterview();
+  const { name } = useUser({ name: true });
 
   const [open, setOpen] = useState(false);
   const [selectedProjectIds, setSelectedProjectIds] = useState<number[]>([]);
@@ -49,6 +53,21 @@ export default function AiInterviewLauncher({
   }, [submissions, projects]);
 
   const canStart = availableInterviewProjects.length > 0 && !isLoadingSubmissions;
+
+  const buildTitle = () => {
+    const dt = new Date();
+    const datePart = dt.toLocaleDateString(undefined, { month: 'short', day: '2-digit' });
+    const timePart = dt.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    const userPart = (name ?? 'User').trim() || 'User';
+    return `${contestTitle} • ${userPart} • ${datePart} ${timePart}`;
+  };
+
+  const buildDescription = (projectIds: number[]) => {
+    const names = projectIds
+      .map((id) => projects.find((p) => p.id === id)?.projectId)
+      .filter(Boolean) as string[];
+    return names.length > 0 ? names.join(', ') : 'Selected problems';
+  };
 
   return (
     <>
@@ -121,7 +140,11 @@ export default function AiInterviewLauncher({
               disabled={selectedProjectIds.length === 0 || isStartingInterview}
               onClick={async () => {
                 try {
-                  const created = await createInterview({ projectIds: selectedProjectIds });
+                  const created = await createInterview({
+                    projectIds: selectedProjectIds,
+                    title: buildTitle(),
+                    description: buildDescription(selectedProjectIds),
+                  });
                   setOpen(false);
                   router.push(`/interview/${created.id}`);
                 } catch {

@@ -127,6 +127,7 @@ const CodeDoc = ({ title, projects, contestId }: CodeDocProps) => {
               projects={projects}
               submissions={submissions}
               isLoadingSubmissions={isSubmissionsLoading}
+              contestTitle={title}
             />
           </div>
         </div>

@@ -142,6 +142,7 @@ export const interview = pgTable(
       .notNull()
       .default('PENDING')
       .$type<'PENDING' | 'IN_PROGRESS' | 'COMPLETED'>(),
+    startedAt: timestamp('started_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
