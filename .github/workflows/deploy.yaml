@@ -24,10 +24,20 @@ jobs:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_SSH_KEY }}
-          port: 22
+          port: ${{ secrets.DO_SSH_PORT || 22 }}
           script_stop: true
           script: |
             set -euo pipefail
+
+            # GitHub Action uses a non-login shell; ensure Bun is on PATH.
+            export PATH="$HOME/.bun/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
+            if ! command -v bun >/dev/null 2>&1; then
+              echo "bun not found on PATH. HOME=$HOME"
+              ls -la "$HOME/.bun/bin" || true
+              exit 127
+            fi
+            bun -v
+
             cd "$HOME/XContext/backend"
 
             git stash push -u -m "ci-deploy-$(date -u +%Y%m%dT%H%M%SZ)" || true
