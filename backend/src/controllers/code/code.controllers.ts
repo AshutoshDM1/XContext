@@ -6,10 +6,11 @@ import { createCodeSchema, updateCodeSchema } from './validation';
 import asyncHandler from '@/utils/asyncHandler';
 import type { AuthenticatedRequest } from '@/middleware/authentication';
 
-const PUBLIC_CONTEST_OWNER_USER_ID = '6yjaFy0Cmi4Y5CciAwC0bmBagpcizFVY';
-
-function canAccessProjectForUser(projectContestOwnerId: string, userId: string): boolean {
-  return projectContestOwnerId === userId || projectContestOwnerId === PUBLIC_CONTEST_OWNER_USER_ID;
+function canAccessProjectForUser(
+  contestData: { userId: string; isPublic: boolean; isPrivate: boolean },
+  userId: string,
+): boolean {
+  return contestData.isPublic || !contestData.isPrivate || contestData.userId === userId;
 }
 
 export const createCode = asyncHandler(async (req: Request, res: Response) => {
@@ -23,7 +24,17 @@ export const createCode = asyncHandler(async (req: Request, res: Response) => {
     },
   });
 
-  if (!projectExists || !canAccessProjectForUser(projectExists.contest.userId, userId)) {
+  if (
+    !projectExists ||
+    !canAccessProjectForUser(
+      {
+        userId: projectExists.contest.userId,
+        isPublic: Boolean((projectExists.contest as any).isPublic),
+        isPrivate: Boolean((projectExists.contest as any).isPrivate),
+      },
+      userId,
+    )
+  ) {
     res.status(404).json({ message: 'Project not found or unauthorized' });
     return;
   }
@@ -101,7 +112,17 @@ export const getCodeByProjectId = asyncHandler(async (req: Request, res: Respons
     },
   });
 
-  if (!projectExists || !canAccessProjectForUser(projectExists.contest.userId, userId)) {
+  if (
+    !projectExists ||
+    !canAccessProjectForUser(
+      {
+        userId: projectExists.contest.userId,
+        isPublic: Boolean((projectExists.contest as any).isPublic),
+        isPrivate: Boolean((projectExists.contest as any).isPrivate),
+      },
+      userId,
+    )
+  ) {
     res.status(404).json({ message: 'Project not found or unauthorized' });
     return;
   }
@@ -161,7 +182,17 @@ export const updateCodeByProjectId = asyncHandler(async (req: Request, res: Resp
     },
   });
 
-  if (!projectExists || !canAccessProjectForUser(projectExists.contest.userId, userId)) {
+  if (
+    !projectExists ||
+    !canAccessProjectForUser(
+      {
+        userId: projectExists.contest.userId,
+        isPublic: Boolean((projectExists.contest as any).isPublic),
+        isPrivate: Boolean((projectExists.contest as any).isPrivate),
+      },
+      userId,
+    )
+  ) {
     res.status(404).json({ message: 'Project not found or unauthorized' });
     return;
   }

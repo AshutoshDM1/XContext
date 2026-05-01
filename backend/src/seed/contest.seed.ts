@@ -18,40 +18,7 @@ const contestsData: Array<{
 }> = [
   {
     userId: SEED_USER_ID,
-    title: 'SuperTeam x 100xDevs March Bounty Contest',
-    shortDescription:
-      'Build 3 projects — an address book, a PDA registry, and a multi-sig vault — testing your understanding of wallets, PDAs, and private keys.',
-    topbarDescription:
-      'Build 3 projects — an address book, a PDA registry, and a multi-sig vault — testing your understanding of wallets, PDAs, and private keys.',
-    status: 'ENDED',
-    participantCount: 427,
-    timeLabel: '08:34 PM – 10:34 PM',
-  },
-  {
-    userId: SEED_USER_ID,
-    title: 'PDA Registry Sprint',
-    shortDescription:
-      'Register and resolve Program Derived Addresses with seeds, bump validation, and a minimal explorer UI.',
-    topbarDescription:
-      'Register PDAs with canonical bumps, resolve by program + seeds, and expose a read-only JSON API.',
-    status: 'LIVE',
-    participantCount: 128,
-    timeLabel: 'Live now',
-  },
-  {
-    userId: SEED_USER_ID,
-    title: 'Multi-sig Vault Lab',
-    shortDescription:
-      'Simulate a vault with M-of-N signers, proposal queue, and execution deadlines.',
-    topbarDescription:
-      'M-of-N proposals, timelock execution, and replay protection for off-chain signed intents.',
-    status: 'ENDED',
-    participantCount: 89,
-    timeLabel: 'Mar 12 – Mar 19',
-  },
-  {
-    userId: SEED_USER_ID,
-    title: 'JS Promise Orchestrator ',
+    title: 'JS Promise Orchestrator Contest',
     shortDescription:
       'Master JavaScript promises with retries, concurrency limits, chaining, and failure recovery.',
     topbarDescription:

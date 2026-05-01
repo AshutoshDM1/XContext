@@ -4,8 +4,22 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { TrophyIcon, UsersIcon, ClockIcon } from '@phosphor-icons/react/ssr';
 import { AdminContestActions } from './AdminContestActions';
+import { useJoinContest } from '@/hooks/useContests';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
 
-export default function ContestCard({ contest, isAdmin }: { contest: Contest; isAdmin?: boolean }) {
+export default function ContestCard({
+  contest,
+  canManage,
+  isAdmin,
+}: {
+  contest: Contest;
+  canManage?: boolean;
+  isAdmin?: boolean;
+}) {
+  const router = useRouter();
+  const { mutateAsync: joinContest, isPending } = useJoinContest();
+
   const cta =
     contest.status === 'ENDED' ? (
       <Link
@@ -15,12 +29,21 @@ export default function ContestCard({ contest, isAdmin }: { contest: Contest; is
         See Results
       </Link>
     ) : (
-      <Link
-        href={`/contests/${contest.id}`}
-        className="text-sm text-foreground underline underline-offset-4 hover:text-muted-foreground"
+      <Button
+        type="button"
+        variant="default"
+        disabled={isPending}
+        onClick={async () => {
+          try {
+            await joinContest(contest.id);
+            router.push(`/contests/${contest.id}`);
+          } catch (error) {
+            console.error('Error joining contest:', error);
+          }
+        }}
       >
-        Give Contest
-      </Link>
+        {isPending ? 'Joining...' : 'Join Contest'}
+      </Button>
     );
 
   return (
@@ -29,11 +52,27 @@ export default function ContestCard({ contest, isAdmin }: { contest: Contest; is
         <CardTitle className="text-sm font-semibold leading-snug">{contest.title}</CardTitle>
         <div className="flex items-center gap-2 shrink-0">
           <Badge variant="outline">{contest.status}</Badge>
-          {isAdmin && <AdminContestActions contest={contest} />}
+          {contest.isPublic ? (
+            <Badge variant="secondary">Public</Badge>
+          ) : contest.isPrivate ? (
+            <Badge variant="secondary">Private</Badge>
+          ) : (
+            <Badge variant="secondary">Link</Badge>
+          )}
+          {canManage && <AdminContestActions contest={contest} isAdmin={isAdmin} />}
         </div>
       </CardHeader>
       <CardContent className="space-y-4 px-4">
         <p className="text-xs leading-relaxed text-muted-foreground">{contest.shortDescription}</p>
+        {contest.contestCategories && contest.contestCategories.length > 0 ? (
+          <div className="flex flex-wrap gap-1.5">
+            {contest.contestCategories.slice(0, 3).map((cc) => (
+              <Badge key={cc.categoryId} variant="outline" className="text-[10px]">
+                {cc.category.name}
+              </Badge>
+            ))}
+          </div>
+        ) : null}
         <ul className="space-y-2 text-xs text-muted-foreground">
           <li className="flex items-center gap-2">
             <TrophyIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -45,7 +84,7 @@ export default function ContestCard({ contest, isAdmin }: { contest: Contest; is
           </li>
           <li className="flex items-center gap-2">
             <ClockIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-            <span>{contest.timeLabel}</span>
+            <span>{contest.startsAt || contest.endsAt ? 'Scheduled' : 'Always open'}</span>
           </li>
         </ul>
       </CardContent>

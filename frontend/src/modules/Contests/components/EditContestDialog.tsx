@@ -24,6 +24,9 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { type ContestStatus, type Contest } from '@/store/contests';
 import { useUpdateContest } from '@/hooks/useContests';
+import { useCategories } from '@/hooks/useCategories';
+import { Switch } from '@/components/ui/switch';
+import { DateTimePicker } from './DateTimePicker';
 import { toast } from 'sonner';
 
 interface ProjectInput {
@@ -35,18 +38,34 @@ interface EditContestDialogProps {
   contest: Contest;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  isAdmin?: boolean;
 }
 
-export function EditContestDialog({ contest, open, onOpenChange }: EditContestDialogProps) {
+export function EditContestDialog({
+  contest,
+  open,
+  onOpenChange,
+  isAdmin,
+}: EditContestDialogProps) {
   const { mutate: updateContest, isPending } = useUpdateContest();
+  const { data: categories } = useCategories();
 
   const [title, setTitle] = useState(contest.title);
   const [shortDescription, setShortDescription] = useState(contest.shortDescription);
   const [topbarDescription, setTopbarDescription] = useState(contest.topbarDescription || '');
   const [status, setStatus] = useState<ContestStatus>(contest.status);
-  const [timeLabel, setTimeLabel] = useState(contest.timeLabel);
-  const [participantCount, setParticipantCount] = useState(String(contest.participantCount));
+  const [startsAt, setStartsAt] = useState<Date | null>(
+    contest.startsAt ? new Date(contest.startsAt) : null,
+  );
+  const [endsAt, setEndsAt] = useState<Date | null>(
+    contest.endsAt ? new Date(contest.endsAt) : null,
+  );
   const [projects, setProjects] = useState<ProjectInput[]>(contest.projects);
+  const [isPrivate, setIsPrivate] = useState<boolean>(contest.isPrivate);
+  const [isPublic, setIsPublic] = useState<boolean>(contest.isPublic);
+  const [categoryIds, setCategoryIds] = useState<number[]>(
+    contest.contestCategories?.map((cc) => cc.categoryId) ?? [],
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -55,9 +74,12 @@ export function EditContestDialog({ contest, open, onOpenChange }: EditContestDi
       setShortDescription(contest.shortDescription);
       setTopbarDescription(contest.topbarDescription || '');
       setStatus(contest.status);
-      setTimeLabel(contest.timeLabel);
-      setParticipantCount(String(contest.participantCount));
+      setStartsAt(contest.startsAt ? new Date(contest.startsAt) : null);
+      setEndsAt(contest.endsAt ? new Date(contest.endsAt) : null);
       setProjects(contest.projects);
+      setIsPrivate(contest.isPrivate);
+      setIsPublic(contest.isPublic);
+      setCategoryIds(contest.contestCategories?.map((cc) => cc.categoryId) ?? []);
     };
     queueMicrotask(sync);
   }, [open, contest]);
@@ -104,9 +126,12 @@ export function EditContestDialog({ contest, open, onOpenChange }: EditContestDi
           title,
           shortDescription,
           topbarDescription: topbarDescription || undefined,
+          isPrivate,
+          ...(isAdmin ? { isPublic } : {}),
+          categoryIds: categoryIds.length > 0 ? categoryIds : [],
           status,
-          participantCount: parseInt(participantCount) || 0,
-          timeLabel: timeLabel || 'Custom',
+          startsAt: startsAt ? startsAt.toISOString() : undefined,
+          endsAt: endsAt ? endsAt.toISOString() : undefined,
           projects: projects.map((p) => ({
             projectId: p.projectId.trim(),
             problemMarkdown: p.problemMarkdown.trim(),
@@ -165,9 +190,82 @@ export function EditContestDialog({ contest, open, onOpenChange }: EditContestDi
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
+                <Label>Share via link</Label>
+                <div className="flex items-center justify-between gap-3 rounded-none border border-border bg-muted/20 p-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium">Accessible</div>
+                    <div className="text-xs text-muted-foreground">
+                      Anyone with the link can open the contest.
+                    </div>
+                  </div>
+                  <Switch
+                    checked={!isPrivate}
+                    onCheckedChange={(checked) => {
+                      setIsPrivate(!checked);
+                      if (checked) setIsPublic(false);
+                    }}
+                    disabled={isPublic}
+                  />
+                </div>
+              </div>
+
+              {isAdmin ? (
+                <div className="space-y-2">
+                  <Label>Public listing</Label>
+                  <div className="flex items-center justify-between gap-3 rounded-none border border-border bg-muted/20 p-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium">Show in panel</div>
+                      <div className="text-xs text-muted-foreground">
+                        Public contests are listed for everyone.
+                      </div>
+                    </div>
+                    <Switch
+                      checked={isPublic}
+                      onCheckedChange={(checked) => {
+                        setIsPublic(checked);
+                        if (checked) setIsPrivate(false);
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            {categories && categories.length > 0 ? (
+              <div className="space-y-2">
+                <Label>Categories (max 3)</Label>
+                <div className="flex flex-wrap gap-2">
+                  {categories.map((cat) => {
+                    const active = categoryIds.includes(cat.id);
+                    const disabled = !active && categoryIds.length >= 3;
+                    return (
+                      <Button
+                        key={cat.id}
+                        type="button"
+                        size="sm"
+                        variant={active ? 'default' : 'outline'}
+                        disabled={disabled}
+                        onClick={() => {
+                          setCategoryIds((prev) =>
+                            prev.includes(cat.id)
+                              ? prev.filter((x) => x !== cat.id)
+                              : [...prev, cat.id],
+                          );
+                        }}
+                      >
+                        {cat.name}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select value={status} onValueChange={(v) => setStatus(v as ContestStatus)}>
-                  <SelectTrigger id="status">
+                  <SelectTrigger id="status" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -178,25 +276,21 @@ export function EditContestDialog({ contest, open, onOpenChange }: EditContestDi
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="timeLabel">Time Label</Label>
-                <Input
-                  id="timeLabel"
-                  placeholder="e.g., Live now, Jan 1-15"
-                  value={timeLabel}
-                  onChange={(e) => setTimeLabel(e.target.value)}
+                <Label>Live window (optional)</Label>
+                <DateTimePicker
+                  value={startsAt}
+                  onChange={setStartsAt}
+                  placeholder="Pick start date & time"
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="participantCount">Participant Count</Label>
-              <Input
-                id="participantCount"
-                type="number"
-                placeholder="0"
-                value={participantCount}
-                onChange={(e) => setParticipantCount(e.target.value)}
-              />
+              <div className="space-y-2">
+                <Label>Ends at (optional)</Label>
+                <DateTimePicker
+                  value={endsAt}
+                  onChange={setEndsAt}
+                  placeholder="Pick end date & time"
+                />
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -211,7 +305,7 @@ export function EditContestDialog({ contest, open, onOpenChange }: EditContestDi
               </div>
 
               {projects.map((project, index) => (
-                <div key={index} className="space-y-3 rounded-lg border p-4">
+                <div key={index} className="space-y-3 rounded-none border p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Project {index + 1}</span>
                     {projects.length > 1 && (

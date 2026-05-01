@@ -1,5 +1,14 @@
 import { relations } from 'drizzle-orm';
-import { integer, pgTable, timestamp, jsonb, text, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import {
+  boolean,
+  integer,
+  pgTable,
+  timestamp,
+  jsonb,
+  text,
+  index,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 import { user } from './auth-schema';
 
 export const code = pgTable(
@@ -68,16 +77,32 @@ export const contest = pgTable(
     title: text('title').notNull(),
     shortDescription: text('short_description').notNull(),
     topbarDescription: text('topbar_description'),
+    /**
+     * Visibility:
+     * - isPrivate=true: only owner can access (default).
+     * - isPrivate=false: accessible via direct link (not listed).
+     * - isPublic=true: listed for everyone (admin-only to set).
+     */
+    isPrivate: boolean('is_private').notNull().default(true),
+    isPublic: boolean('is_public').notNull().default(false),
     status: text('status').notNull().default('LIVE'),
     participantCount: integer('participant_count').notNull().default(0),
-    timeLabel: text('time_label').notNull(),
+    // Optional live window. When omitted → always open.
+    startsAt: timestamp('starts_at'),
+    endsAt: timestamp('ends_at'),
+    // Legacy display label (kept for backward compatibility). Prefer formatting startsAt/endsAt in UI.
+    timeLabel: text('time_label').notNull().default('Always open'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index('contest_userId_idx').on(table.userId)],
+  (table) => [
+    index('contest_userId_idx').on(table.userId),
+    index('contest_isPublic_idx').on(table.isPublic),
+    index('contest_isPrivate_idx').on(table.isPrivate),
+  ],
 );
 
 export const contestRelations = relations(contest, ({ one, many }) => ({
@@ -86,6 +111,55 @@ export const contestRelations = relations(contest, ({ one, many }) => ({
     references: [user.id],
   }),
   projects: many(project),
+  contestCategories: many(contestCategory),
+}));
+
+export const category = pgTable(
+  'category',
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    name: text('name').notNull(),
+    slug: text('slug').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [uniqueIndex('category_slug_uidx').on(table.slug)],
+);
+
+export const contestCategory = pgTable(
+  'contest_category',
+  {
+    contestId: integer('contest_id')
+      .notNull()
+      .references(() => contest.id, { onDelete: 'cascade' }),
+    categoryId: integer('category_id')
+      .notNull()
+      .references(() => category.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex('contest_category_contestId_categoryId_uidx').on(table.contestId, table.categoryId),
+    index('contest_category_contestId_idx').on(table.contestId),
+    index('contest_category_categoryId_idx').on(table.categoryId),
+  ],
+);
+
+export const categoryRelations = relations(category, ({ many }) => ({
+  contestCategories: many(contestCategory),
+}));
+
+export const contestCategoryRelations = relations(contestCategory, ({ one }) => ({
+  contest: one(contest, {
+    fields: [contestCategory.contestId],
+    references: [contest.id],
+  }),
+  category: one(category, {
+    fields: [contestCategory.categoryId],
+    references: [category.id],
+  }),
 }));
 
 export const codeSubmission = pgTable(

@@ -2,7 +2,7 @@ import Section from '../Section/Section';
 
 const Footer = () => {
   return (
-    <Section>
+    <Section className="pb-4">
       <footer className="flex flex-wrap items-center justify-between border-t border-border/60 text-xs pt-3 text-muted-foreground ">
         <div>© {new Date().getFullYear()} XContext</div>
         <div className="flex gap-4">

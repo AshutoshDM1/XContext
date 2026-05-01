@@ -36,7 +36,7 @@ export default function RootLayout({
             <ThemeToggle />
             <main className="min-h-dvh">
               <Navbar />
-              <div className="min-h-[85vh]">{children}</div>
+              <div className="min-h-[calc(100dvh-94px)]">{children}</div>
               <Footer />
             </main>
           </QueryProvider>

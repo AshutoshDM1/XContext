@@ -25,6 +25,8 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { type ContestStatus } from '@/store/contests';
 import { useCreateContest } from '@/hooks/useContests';
+import { useCategories } from '@/hooks/useCategories';
+import { DateTimePicker } from './DateTimePicker';
 import { toast } from 'sonner';
 
 interface ProjectInput {
@@ -35,13 +37,15 @@ interface ProjectInput {
 export function CreateContestDialog() {
   const [open, setOpen] = useState(false);
   const { mutate: createContest, isPending } = useCreateContest();
+  const { data: categories } = useCategories();
 
   const [title, setTitle] = useState('');
   const [shortDescription, setShortDescription] = useState('');
   const [topbarDescription, setTopbarDescription] = useState('');
   const [status, setStatus] = useState<ContestStatus>('LIVE');
-  const [timeLabel, setTimeLabel] = useState('');
-  const [participantCount, setParticipantCount] = useState('0');
+  const [startsAt, setStartsAt] = useState<Date | null>(null);
+  const [endsAt, setEndsAt] = useState<Date | null>(null);
+  const [categoryIds, setCategoryIds] = useState<number[]>([]);
   const [projects, setProjects] = useState<ProjectInput[]>([
     { projectId: '', problemMarkdown: '' },
   ]);
@@ -69,8 +73,9 @@ export function CreateContestDialog() {
     setShortDescription('');
     setTopbarDescription('');
     setStatus('LIVE');
-    setTimeLabel('');
-    setParticipantCount('0');
+    setStartsAt(null);
+    setEndsAt(null);
+    setCategoryIds([]);
     setProjects([{ projectId: '', problemMarkdown: '' }]);
   };
 
@@ -96,8 +101,9 @@ export function CreateContestDialog() {
         shortDescription,
         topbarDescription: topbarDescription || undefined,
         status,
-        participantCount: parseInt(participantCount) || 0,
-        timeLabel: timeLabel || 'Custom',
+        startsAt: startsAt ? startsAt.toISOString() : undefined,
+        endsAt: endsAt ? endsAt.toISOString() : undefined,
+        categoryIds: categoryIds.length > 0 ? categoryIds : undefined,
         projects: projects.map((p) => ({
           projectId: p.projectId.trim(),
           problemMarkdown: p.problemMarkdown.trim(),
@@ -162,11 +168,11 @@ export function CreateContestDialog() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select value={status} onValueChange={(v) => setStatus(v as ContestStatus)}>
-                  <SelectTrigger id="status">
+                  <SelectTrigger id="status" className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -177,26 +183,52 @@ export function CreateContestDialog() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="timeLabel">Time Label</Label>
-                <Input
-                  id="timeLabel"
-                  placeholder="e.g., Live now, Jan 1-15"
-                  value={timeLabel}
-                  onChange={(e) => setTimeLabel(e.target.value)}
+                <Label>Starts at (optional)</Label>
+                <DateTimePicker
+                  value={startsAt}
+                  onChange={setStartsAt}
+                  placeholder="Pick start date & time"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Ends at (optional)</Label>
+                <DateTimePicker
+                  value={endsAt}
+                  onChange={setEndsAt}
+                  placeholder="Pick end date & time"
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="participantCount">Participant Count</Label>
-              <Input
-                id="participantCount"
-                type="number"
-                placeholder="0"
-                value={participantCount}
-                onChange={(e) => setParticipantCount(e.target.value)}
-              />
-            </div>
+            {categories && categories.length > 0 ? (
+              <div className="space-y-2">
+                <Label>Categories (max 3)</Label>
+                <div className="flex flex-wrap gap-2">
+                  {categories.map((cat) => {
+                    const active = categoryIds.includes(cat.id);
+                    const disabled = !active && categoryIds.length >= 3;
+                    return (
+                      <Button
+                        key={cat.id}
+                        type="button"
+                        size="sm"
+                        variant={active ? 'default' : 'outline'}
+                        disabled={disabled}
+                        onClick={() => {
+                          setCategoryIds((prev) =>
+                            prev.includes(cat.id)
+                              ? prev.filter((x) => x !== cat.id)
+                              : [...prev, cat.id],
+                          );
+                        }}
+                      >
+                        {cat.name}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -210,7 +242,7 @@ export function CreateContestDialog() {
               </div>
 
               {projects.map((project, index) => (
-                <div key={index} className="space-y-3 rounded-lg border p-4">
+                <div key={index} className="space-y-3 rounded-none border p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium">Project {index + 1}</span>
                     {projects.length > 1 && (

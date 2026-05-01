@@ -23,9 +23,10 @@ import { EditContestDialog } from './EditContestDialog';
 
 interface AdminContestActionsProps {
   contest: Contest;
+  isAdmin?: boolean;
 }
 
-export function AdminContestActions({ contest }: AdminContestActionsProps) {
+export function AdminContestActions({ contest, isAdmin }: AdminContestActionsProps) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const { mutate: deleteContest, isPending: isDeleting } = useDeleteContest();
@@ -75,7 +76,12 @@ export function AdminContestActions({ contest }: AdminContestActionsProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <EditContestDialog contest={contest} open={editOpen} onOpenChange={setEditOpen} />
+      <EditContestDialog
+        contest={contest}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        isAdmin={isAdmin}
+      />
 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>

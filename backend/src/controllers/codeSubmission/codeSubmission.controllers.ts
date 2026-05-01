@@ -6,10 +6,11 @@ import asyncHandler from '@/utils/asyncHandler';
 import type { AuthenticatedRequest } from '@/middleware/authentication';
 import { createCodeSubmissionSchema, getCodeSubmissionsSchema } from './validation';
 
-const PUBLIC_CONTEST_OWNER_USER_ID = '6yjaFy0Cmi4Y5CciAwC0bmBagpcizFVY';
-
-function canAccessProjectForUser(projectContestOwnerId: string, userId: string): boolean {
-  return projectContestOwnerId === userId || projectContestOwnerId === PUBLIC_CONTEST_OWNER_USER_ID;
+function canAccessContestForUser(
+  contestData: { userId: string; isPublic: boolean; isPrivate: boolean },
+  userId: string,
+): boolean {
+  return contestData.isPublic || !contestData.isPrivate || contestData.userId === userId;
 }
 
 export const createCodeSubmission = asyncHandler(async (req: Request, res: Response) => {
@@ -21,7 +22,17 @@ export const createCodeSubmission = asyncHandler(async (req: Request, res: Respo
     with: { contest: true },
   });
 
-  if (!proj || !canAccessProjectForUser(proj.contest.userId, userId)) {
+  if (
+    !proj ||
+    !canAccessContestForUser(
+      {
+        userId: proj.contest.userId,
+        isPublic: Boolean((proj.contest as any).isPublic),
+        isPrivate: Boolean((proj.contest as any).isPrivate),
+      },
+      userId,
+    )
+  ) {
     res.status(404).json({ message: 'Project not found or unauthorized' });
     return;
   }
@@ -79,7 +90,16 @@ export const getCodeSubmissions = asyncHandler(async (req: Request, res: Respons
     return;
   }
 
-  if (contestRow.userId !== PUBLIC_CONTEST_OWNER_USER_ID && contestRow.userId !== userId) {
+  if (
+    !canAccessContestForUser(
+      {
+        userId: contestRow.userId,
+        isPublic: Boolean((contestRow as any).isPublic),
+        isPrivate: Boolean((contestRow as any).isPrivate),
+      },
+      userId,
+    )
+  ) {
     res.status(404).json({ message: 'Contest not found' });
     return;
   }

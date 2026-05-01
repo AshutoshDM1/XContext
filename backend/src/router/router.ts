@@ -6,6 +6,7 @@ import problemRouter from './problem.router';
 import codeRouter from './code.router';
 import codeSubmissionRouter from './codeSubmission.router';
 import interviewRouter from './interview.router';
+import categoryRouter from './category.router';
 
 const router = Router();
 
@@ -16,6 +17,7 @@ router.get('/', (req, res) => {
 router.get('/health', getHealthController);
 router.use('/ai-question', aiQuestionRouter);
 router.use('/contests', contestRouter);
+router.use('/categories', categoryRouter);
 router.use('/problems', problemRouter);
 router.use('/code', codeRouter);
 router.use('/code-submissions', codeSubmissionRouter);

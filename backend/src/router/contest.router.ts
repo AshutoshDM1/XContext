@@ -6,6 +6,7 @@ import {
   updateContest,
   deleteContest,
   getPublicContests,
+  joinContest,
 } from '@/controllers/contest/contest.controllers';
 import { authenticate, optionalAuthenticate } from '@/middleware/authentication';
 
@@ -14,6 +15,7 @@ const router = Router();
 // Public routes
 router.get('/public', getPublicContests);
 router.get('/:id', optionalAuthenticate, getContestById);
+router.post('/:id/join', optionalAuthenticate, joinContest);
 
 // Private routes
 router.use(authenticate);

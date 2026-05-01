@@ -35,7 +35,7 @@ const Interview = ({ interviewId }: { interviewId: string }) => {
     return () => clearInterval(t);
   }, []);
 
-  const totalQuestions = 8;
+  const totalQuestions = 2;
   const questions = interview?.questionAnswers ?? [];
   const currentQuestion = questions.length > 0 ? questions[questions.length - 1] : null;
   const currentUnanswered = currentQuestion && !currentQuestion.answer ? currentQuestion : null;
@@ -87,7 +87,7 @@ const Interview = ({ interviewId }: { interviewId: string }) => {
 
   return (
     <Section className="py-6 overflow-hidden">
-      <main className="flex h-[calc(100dvh-8.5rem)] min-h-0 flex-1 flex-col overflow-hidden rounded-none border bg-background">
+      <main className="flex h-[calc(100dvh-9rem)] min-h-0 flex-1 flex-col overflow-hidden rounded-none border bg-background">
         <ToolTopbar title={interview.title} description={interview.description} />
         <EndedDailog
           open={endedDialogOpen}

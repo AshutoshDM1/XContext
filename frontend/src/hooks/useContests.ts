@@ -8,6 +8,7 @@ import {
   type CreateContestInput,
   type UpdateContestInput,
   getPublicContests,
+  joinContest,
 } from '../services/contests.service';
 import { toast } from 'sonner';
 
@@ -77,6 +78,21 @@ export const useDeleteContest = () => {
     },
     onError: () => {
       toast.error('Failed to delete contest');
+    },
+  });
+};
+
+export const useJoinContest = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => joinContest(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contests'] });
+      queryClient.invalidateQueries({ queryKey: ['public-contests'] });
+      toast.success('Joined contest!');
+    },
+    onError: () => {
+      toast.error('Unable to join contest');
     },
   });
 };

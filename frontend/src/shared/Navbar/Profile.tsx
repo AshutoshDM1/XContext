@@ -22,6 +22,17 @@ function getInitials(value?: string | null) {
   return `${first}${second}`.toUpperCase();
 }
 
+function toAvatarSrc(image?: string | null) {
+  if (!image) return undefined;
+  // If it's already a relative URL, keep it as-is.
+  if (image.startsWith('/')) return image;
+  // Proxy remote avatars through same-origin to avoid COEP/CORS/CORP issues.
+  if (image.startsWith('http://') || image.startsWith('https://')) {
+    return `/api/avatar?url=${encodeURIComponent(image)}`;
+  }
+  return undefined;
+}
+
 const Profile = () => {
   const { data: session, isPending } = useSession();
   const [open, setOpen] = useState(false);
@@ -39,6 +50,7 @@ const Profile = () => {
 
   const displayName = useMemo(() => user?.name ?? user?.email ?? 'User', [user?.email, user?.name]);
   const initials = useMemo(() => getInitials(user?.name ?? user?.email), [user?.email, user?.name]);
+  const avatarSrc = useMemo(() => toAvatarSrc(user?.image), [user?.image]);
 
   if (isPending) {
     return <div className="h-10 w-10 rounded-full border border-border bg-muted/40" aria-hidden />;
@@ -55,7 +67,7 @@ const Profile = () => {
           aria-label="Open profile"
         >
           <Avatar size="default">
-            <AvatarImage src={user?.image ?? undefined} alt={displayName} />
+            <AvatarImage src={avatarSrc} alt={displayName} />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
         </button>
@@ -69,7 +81,7 @@ const Profile = () => {
 
         <div className="flex items-center gap-3">
           <Avatar size="lg">
-            <AvatarImage src={user?.image ?? undefined} alt={displayName} />
+            <AvatarImage src={avatarSrc} alt={displayName} />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
           <div className="min-w-0">

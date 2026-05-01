@@ -6,8 +6,18 @@ export interface AuthenticatedRequest extends Request {
     id: string;
     email: string;
     name: string;
-    admin: boolean;
+    isAdmin: boolean;
     [key: string]: any;
+  };
+}
+
+function normalizeUser(user: any): AuthenticatedRequest['user'] {
+  const isAdmin = Boolean(user?.isAdmin ?? user?.admin ?? false);
+  return {
+    ...user,
+    isAdmin,
+    // keep legacy key for older call sites (if any)
+    admin: isAdmin,
   };
 }
 
@@ -20,7 +30,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       return;
     }
 
-    (req as AuthenticatedRequest).user = session.user as unknown as AuthenticatedRequest['user'];
+    (req as AuthenticatedRequest).user = normalizeUser(session.user);
     next();
   } catch (error) {
     console.error('Authentication error:', error);
@@ -38,7 +48,7 @@ export const optionalAuthenticate = async (req: Request, _res: Response, next: N
   try {
     const session = await auth.api.getSession({ headers: req.headers });
     if (session?.user) {
-      (req as AuthenticatedRequest).user = session.user as unknown as AuthenticatedRequest['user'];
+      (req as AuthenticatedRequest).user = normalizeUser(session.user);
     }
   } catch {
     /* ignore */
