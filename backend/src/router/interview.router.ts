@@ -10,6 +10,10 @@ import {
   getInterviews,
   updateInterview,
 } from '@/controllers/interview/interview.controllers';
+import {
+  generateInterviewRating,
+  getInterviewRating,
+} from '@/controllers/interviewRating/interviewRating.controllers';
 
 const router = Router();
 
@@ -24,5 +28,8 @@ router.delete('/:id', deleteInterview);
 router.post('/:id/generate-question', generateInterviewQuestion);
 router.post('/:id/questions', addInterviewQuestion);
 router.put('/:id/questions/:questionAnswerId/answer', answerInterviewQuestion);
+
+router.get('/:id/rating', getInterviewRating);
+router.post('/:id/rating/generate', generateInterviewRating);
 
 export default router;

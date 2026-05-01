@@ -133,6 +133,33 @@ export async function joinContest(id: number): Promise<{ participantCount: numbe
   }
 }
 
+export type LeaderboardEntry = {
+  userId: string;
+  name: string;
+  email: string;
+  image: string | null;
+  score: number | null;
+  timeTakenMs: number | null;
+  timeLeftMs: number | null;
+  completedAt: string | null;
+  interviewId: number;
+};
+
+export async function getContestLeaderboard(contestId: number): Promise<{
+  contestId: number;
+  contestTitle: string;
+  entries: LeaderboardEntry[];
+}> {
+  try {
+    const response = await baseApi.get(`/api/v1/contests/${contestId}/leaderboard`, {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: unknown) {
+    throw handleError(error);
+  }
+}
+
 export async function deleteContest(id: number): Promise<void> {
   try {
     await baseApi.delete(`/api/v1/contests/${id}`, {

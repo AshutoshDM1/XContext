@@ -210,20 +210,30 @@ export const interview = pgTable(
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
+    contestId: integer('contest_id').references(() => contest.id, { onDelete: 'set null' }),
     title: text('title').notNull(),
     description: text('description').notNull(),
     status: text('status')
       .notNull()
       .default('PENDING')
       .$type<'PENDING' | 'IN_PROGRESS' | 'COMPLETED'>(),
+    // Configured duration for this interview (ms). Used for time-based scoring.
+    durationMs: integer('duration_ms')
+      .notNull()
+      .default(10 * 60 * 1000),
     startedAt: timestamp('started_at'),
+    completedAt: timestamp('completed_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index('interview_userId_idx').on(table.userId)],
+  (table) => [
+    index('interview_userId_idx').on(table.userId),
+    index('interview_contestId_idx').on(table.contestId),
+    index('interview_status_idx').on(table.status),
+  ],
 );
 
 export const interviewRelations = relations(interview, ({ one, many }) => ({
@@ -231,8 +241,68 @@ export const interviewRelations = relations(interview, ({ one, many }) => ({
     fields: [interview.userId],
     references: [user.id],
   }),
+  contest: one(contest, {
+    fields: [interview.contestId],
+    references: [contest.id],
+  }),
   interviewProjects: many(interviewProject),
   questionAnswers: many(interviewQuestionAnswer),
+  rating: one(interviewRating, {
+    fields: [interview.id],
+    references: [interviewRating.interviewId],
+  }),
+}));
+
+export const interviewRating = pgTable(
+  'interview_rating',
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    interviewId: integer('interview_id')
+      .notNull()
+      .references(() => interview.id, { onDelete: 'cascade' }),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    contestId: integer('contest_id').references(() => contest.id, { onDelete: 'set null' }),
+    status: text('status')
+      .notNull()
+      .default('PENDING')
+      .$type<'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'>(),
+    score: integer('score'), // 0-100
+    timeTakenMs: integer('time_taken_ms'),
+    timeLeftMs: integer('time_left_ms'),
+    summary: text('summary'),
+    improvements: text('improvements'),
+    raw: jsonb('raw'),
+    error: text('error'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('interview_rating_interviewId_uidx').on(table.interviewId),
+    index('interview_rating_contestId_idx').on(table.contestId),
+    index('interview_rating_userId_idx').on(table.userId),
+    index('interview_rating_status_idx').on(table.status),
+    index('interview_rating_score_idx').on(table.score),
+  ],
+);
+
+export const interviewRatingRelations = relations(interviewRating, ({ one }) => ({
+  interview: one(interview, {
+    fields: [interviewRating.interviewId],
+    references: [interview.id],
+  }),
+  user: one(user, {
+    fields: [interviewRating.userId],
+    references: [user.id],
+  }),
+  contest: one(contest, {
+    fields: [interviewRating.contestId],
+    references: [contest.id],
+  }),
 }));
 
 export const interviewProject = pgTable(

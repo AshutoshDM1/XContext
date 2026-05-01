@@ -13,8 +13,9 @@ type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onClose: () => void;
+  interviewId?: number;
 };
-const EndedDailog = ({ open, onOpenChange, onClose }: Props) => {
+const EndedDailog = ({ open, onOpenChange, onClose, interviewId }: Props) => {
   const router = useRouter();
 
   return (
@@ -33,9 +34,15 @@ const EndedDailog = ({ open, onOpenChange, onClose }: Props) => {
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => router.push('/leaderboard')}>
-            Leaderboard
-          </Button>
+          {interviewId ? (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.push(`/interview/${interviewId}/result`)}
+            >
+              View result
+            </Button>
+          ) : null}
           <Button type="button" variant="outline" onClick={() => router.push('/interviews')}>
             Interview history
           </Button>

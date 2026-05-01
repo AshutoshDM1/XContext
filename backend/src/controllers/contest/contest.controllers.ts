@@ -1,7 +1,15 @@
 import type { Request, Response } from 'express';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import db from '@/utils/db';
-import { category, contest, contestCategory, project } from '@/db/schema';
+import {
+  category,
+  contest,
+  contestCategory,
+  interview,
+  interviewRating,
+  project,
+} from '@/db/schema';
+import { user } from '@/db/auth-schema';
 import { createContestSchema, updateContestSchema } from './validation';
 import asyncHandler from '@/utils/asyncHandler';
 import type { AuthenticatedRequest } from '@/middleware/authentication';
@@ -247,6 +255,71 @@ export const joinContest = asyncHandler(async (req: Request, res: Response) => {
     .returning();
 
   res.json({ participantCount: updated?.participantCount ?? (contestRow as any).participantCount });
+});
+
+export const getContestLeaderboard = asyncHandler(async (req: Request, res: Response) => {
+  const contestId = Number(req.params.id);
+  if (!Number.isFinite(contestId)) {
+    res.status(400).json({ message: 'Invalid contest id' });
+    return;
+  }
+
+  const contestRow = await db.query.contest.findFirst({
+    where: (c, { eq }) => eq(c.id, contestId),
+  });
+
+  if (!contestRow) {
+    res.status(404).json({ message: 'Contest not found' });
+    return;
+  }
+
+  const viewer = (req as Partial<AuthenticatedRequest>).user;
+  if (
+    !canReadContestForUser(
+      {
+        userId: contestRow.userId,
+        isPublic: Boolean((contestRow as any).isPublic),
+        isPrivate: Boolean((contestRow as any).isPrivate),
+      },
+      viewer,
+    )
+  ) {
+    res.status(404).json({ message: 'Contest not found' });
+    return;
+  }
+
+  // Latest interview score per user (only COMPLETED ratings).
+  // Postgres DISTINCT ON picks the latest interview per user for this contest.
+  const rows = await db.execute(sql`
+    with latest as (
+      select distinct on (r.user_id)
+        r.user_id as "userId",
+        u.name as "name",
+        u.email as "email",
+        u.image as "image",
+        r.score as "score",
+        r.time_taken_ms as "timeTakenMs",
+        r.time_left_ms as "timeLeftMs",
+        i.completed_at as "completedAt",
+        i.id as "interviewId"
+      from ${interviewRating} r
+      join ${interview} i on i.id = r.interview_id
+      join ${user} u on u.id = r.user_id
+      where r.contest_id = ${contestId}
+        and r.status = 'COMPLETED'
+      order by r.user_id, i.completed_at desc nulls last, r.updated_at desc
+    )
+    select *
+    from latest
+    order by "score" desc nulls last, "timeTakenMs" asc nulls last, "completedAt" desc nulls last
+    limit 200;
+  `);
+
+  res.json({
+    contestId,
+    contestTitle: (contestRow as any).title,
+    entries: rows.rows,
+  });
 });
 
 export const updateContest = asyncHandler(async (req: Request, res: Response) => {

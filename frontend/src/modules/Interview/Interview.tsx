@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   useAnswerInterviewQuestion,
   useGenerateInterviewQuestion,
@@ -29,13 +29,18 @@ const Interview = ({ interviewId }: { interviewId: string }) => {
   const [answerDraft, setAnswerDraft] = useState('');
   const [now, setNow] = useState(() => Date.now());
   const [dismissedEndedDialog, setDismissedEndedDialog] = useState(false);
+  const tickRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
+    if (tickRef.current) window.clearInterval(tickRef.current);
+    tickRef.current = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => {
+      if (tickRef.current) window.clearInterval(tickRef.current);
+      tickRef.current = null;
+    };
   }, []);
 
-  const totalQuestions = 2;
+  const totalQuestions = 1;
   const questions = interview?.questionAnswers ?? [];
   const currentQuestion = questions.length > 0 ? questions[questions.length - 1] : null;
   const currentUnanswered = currentQuestion && !currentQuestion.answer ? currentQuestion : null;
@@ -55,6 +60,14 @@ const Interview = ({ interviewId }: { interviewId: string }) => {
     remainingMs === 0 ||
     (questions.length >= totalQuestions && allAnswered) ||
     interview?.status === 'COMPLETED';
+
+  useEffect(() => {
+    if (!ended) return;
+    if (tickRef.current) {
+      window.clearInterval(tickRef.current);
+      tickRef.current = null;
+    }
+  }, [ended]);
 
   useEffect(() => {
     if (!interview) return;
@@ -93,6 +106,7 @@ const Interview = ({ interviewId }: { interviewId: string }) => {
           open={endedDialogOpen}
           onOpenChange={setDismissedEndedDialog}
           onClose={() => setDismissedEndedDialog(true)}
+          interviewId={interview.id}
         />
         <div className="min-h-0 flex-1 overflow-hidden">
           <ResizablePanelGroup orientation="horizontal" className="h-full">

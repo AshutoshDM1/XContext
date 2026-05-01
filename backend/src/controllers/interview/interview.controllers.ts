@@ -6,6 +6,7 @@ import db from '@/utils/db';
 import {
   codeSubmission,
   interview,
+  interviewRating,
   interviewProject,
   interviewQuestionAnswer,
   project,
@@ -48,6 +49,19 @@ export const createInterview = asyncHandler(async (req: Request, res: Response) 
   const userId = (req as AuthenticatedRequest).user.id;
   const validated = createInterviewSchema.parse(req.body);
 
+  const projects = await db.query.project.findMany({
+    where: (p, { inArray }) => inArray(p.id, validated.projectIds),
+  });
+  if (projects.length !== validated.projectIds.length) {
+    res.status(404).json({ message: 'One or more problems not found' });
+    return;
+  }
+  const contestId = projects[0]?.contestId ?? null;
+  if (contestId === null || projects.some((p) => p.contestId !== contestId)) {
+    res.status(400).json({ message: 'All problems must be from the same contest' });
+    return;
+  }
+
   const latestSubmissions = await Promise.all(
     validated.projectIds.map(async (projectId) => {
       const latest = await db.query.codeSubmission.findFirst({
@@ -71,9 +85,11 @@ export const createInterview = asyncHandler(async (req: Request, res: Response) 
     .insert(interview)
     .values({
       userId,
+      contestId,
       title: validated.title ?? `Interview session`,
       description: validated.description ?? 'Interview session initialized',
       status: 'PENDING',
+      durationMs: validated.durationMs ?? 10 * 60 * 1000,
     })
     .returning();
 
@@ -277,7 +293,32 @@ export const updateInterview = asyncHandler(async (req: Request, res: Response) 
   }
 
   if (Object.keys(validated).length > 0) {
-    await db.update(interview).set(validated).where(eq(interview.id, interviewId));
+    const updateData: Record<string, unknown> = { ...validated };
+    if (validated.completedAt) updateData.completedAt = new Date(validated.completedAt);
+    if (validated.status === 'COMPLETED') updateData.completedAt = new Date();
+    await db
+      .update(interview)
+      .set(updateData as any)
+      .where(eq(interview.id, interviewId));
+
+    if (validated.status === 'COMPLETED') {
+      const row = await db.query.interview.findFirst({
+        where: (i, { eq, and }) => and(eq(i.id, interviewId), eq(i.userId, userId)),
+      });
+      if (row) {
+        const existingRating = await db.query.interviewRating.findFirst({
+          where: (r, { eq }) => eq(r.interviewId, interviewId),
+        });
+        if (!existingRating) {
+          await db.insert(interviewRating).values({
+            interviewId,
+            userId,
+            contestId: (row as any).contestId ?? null,
+            status: 'PENDING',
+          });
+        }
+      }
+    }
   }
 
   const updated = await db.query.interview.findFirst({

@@ -4,12 +4,19 @@ export const createInterviewSchema = z.object({
   projectIds: z.array(z.number().int().positive()).min(1, 'Select at least one problem'),
   title: z.string().min(1).optional(),
   description: z.string().min(1).optional(),
+  durationMs: z
+    .number()
+    .int()
+    .min(60_000)
+    .max(60 * 60 * 1000)
+    .optional(),
 });
 
 export const updateInterviewSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().min(1).optional(),
   status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED']).optional(),
+  completedAt: z.string().datetime().optional(),
 });
 
 export const addInterviewQuestionSchema = z.object({

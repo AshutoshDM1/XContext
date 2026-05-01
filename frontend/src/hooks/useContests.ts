@@ -9,6 +9,7 @@ import {
   type UpdateContestInput,
   getPublicContests,
   joinContest,
+  getContestLeaderboard,
 } from '../services/contests.service';
 import { toast } from 'sonner';
 
@@ -94,5 +95,13 @@ export const useJoinContest = () => {
     onError: () => {
       toast.error('Unable to join contest');
     },
+  });
+};
+
+export const useContestLeaderboard = (contestId: number, options?: { enabled?: boolean }) => {
+  return useQuery({
+    queryKey: ['contest-leaderboard', contestId],
+    queryFn: () => getContestLeaderboard(contestId),
+    enabled: options?.enabled ?? !!contestId,
   });
 };

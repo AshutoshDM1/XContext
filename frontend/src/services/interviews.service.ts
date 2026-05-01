@@ -16,10 +16,13 @@ export type InterviewQuestionAnswer = {
 export type Interview = {
   id: number;
   userId: string;
+  contestId?: number | null;
   title: string;
   description: string;
   status: InterviewStatus;
+  durationMs?: number;
   startedAt: string | null;
+  completedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -64,6 +67,7 @@ export type CreateInterviewInput = {
   projectIds: number[];
   title?: string;
   description?: string;
+  durationMs?: number;
 };
 
 const handleError = (error: unknown) => {
@@ -148,6 +152,48 @@ export async function updateInterview(
       headers: { 'Content-Type': 'application/json' },
       withCredentials: true,
     });
+    return response.data;
+  } catch (error: unknown) {
+    throw handleError(error);
+  }
+}
+
+export type InterviewRatingStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
+
+export type InterviewRating = {
+  id: number;
+  interviewId: number;
+  userId: string;
+  contestId?: number | null;
+  status: InterviewRatingStatus;
+  score?: number | null;
+  timeTakenMs?: number | null;
+  timeLeftMs?: number | null;
+  summary?: string | null;
+  improvements?: string | null;
+  error?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function getInterviewRating(interviewId: number): Promise<InterviewRating> {
+  try {
+    const response = await baseApi.get(`/api/v1/interviews/${interviewId}/rating`, {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error: unknown) {
+    throw handleError(error);
+  }
+}
+
+export async function generateInterviewRating(interviewId: number): Promise<InterviewRating> {
+  try {
+    const response = await baseApi.post(
+      `/api/v1/interviews/${interviewId}/rating/generate`,
+      {},
+      { withCredentials: true },
+    );
     return response.data;
   } catch (error: unknown) {
     throw handleError(error);

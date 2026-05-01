@@ -7,6 +7,8 @@ import {
   getInterviewById,
   updateInterview,
   type CreateInterviewInput,
+  generateInterviewRating,
+  getInterviewRating,
 } from '@/services/interviews.service';
 
 export const useInterview = (interviewId: number, options?: { enabled?: boolean }) => {
@@ -67,6 +69,28 @@ export const useUpdateInterview = (interviewId: number) => {
       updateInterview(interviewId, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['interview', interviewId] });
+    },
+  });
+};
+
+export const useInterviewRating = (
+  interviewId: number,
+  options?: { enabled?: boolean; refetchInterval?: number | false },
+) => {
+  return useQuery({
+    queryKey: ['interview-rating', interviewId],
+    queryFn: () => getInterviewRating(interviewId),
+    enabled: options?.enabled ?? !!interviewId,
+    refetchInterval: options?.refetchInterval,
+  });
+};
+
+export const useGenerateInterviewRating = (interviewId: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => generateInterviewRating(interviewId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['interview-rating', interviewId] });
     },
   });
 };
