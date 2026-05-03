@@ -1,0 +1,346 @@
+'use client';
+
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import {
+  ArrowRightIcon,
+  CaretDownIcon,
+  ChatCircleIcon,
+  LinkSimpleIcon,
+  PlusIcon,
+  SparkleIcon,
+} from '@phosphor-icons/react';
+import { useRouter } from 'next/navigation';
+
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
+import { MCQPicker } from './MCQPicker';
+import { useAiContest, useAiContestNext } from '@/hooks/use-ai-contest';
+import type {
+  AiContestDraft,
+  AiContestNextResponse,
+  ChatMessage,
+} from '@/services/ai-contest.service';
+
+type PendingSelection = { kind: 'single' | 'multi'; values: string[] } | null;
+
+function toChatMessages(history: ChatMessage[]) {
+  return history.map((m, idx) => (
+    <div
+      key={idx}
+      className={cn(
+        'text-sm leading-relaxed',
+        m.role === 'user' ? 'text-foreground' : 'text-foreground',
+      )}
+    >
+      <span className="mr-2 text-xs text-muted-foreground">{m.role === 'user' ? 'You' : 'AI'}</span>
+      <span className="whitespace-pre-wrap">{m.content}</span>
+    </div>
+  ));
+}
+
+function canCreate(draft: AiContestDraft) {
+  return Boolean(
+    draft.about &&
+    draft.language &&
+    draft.difficulty &&
+    draft.length &&
+    draft.backendLogic &&
+    Array.isArray(draft.topics) &&
+    draft.topics.length > 0,
+  );
+}
+
+export function HomeContestChat() {
+  const router = useRouter();
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  const [history, setHistory] = useState<ChatMessage[]>([
+    {
+      role: 'assistant',
+      content:
+        'Tell me what you want to build a contest for. I’ll ask a few quick questions and generate it for you.',
+    },
+  ]);
+  const [draft, setDraft] = useState<AiContestDraft>({});
+  const [current, setCurrent] = useState<AiContestNextResponse['question'] | null>(null);
+  const [input, setInput] = useState('');
+  const [pendingSelection, setPendingSelection] = useState<PendingSelection>(null);
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmSummary, setConfirmSummary] = useState<string>('');
+
+  const { mutateAsync: nextStep, isPending: isThinking } = useAiContestNext();
+  const { mutateAsync: createContest, isPending: isCreating } = useAiContest();
+
+  const canSend = useMemo(() => input.trim().length > 0 && !isThinking, [input, isThinking]);
+
+  useEffect(() => {
+    // Best-effort autoscroll on new messages
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+  }, [history.length, current?.kind]);
+
+  const pushAssistant = (content: string) =>
+    setHistory((h) => [...h, { role: 'assistant', content: content.trim() }]);
+  const pushUser = (content: string) => setHistory((h) => [...h, { role: 'user', content }]);
+
+  const runNext = async (extraUserMessage?: string) => {
+    try {
+      const messages: ChatMessage[] = extraUserMessage
+        ? [...history, { role: 'user' as const, content: extraUserMessage }]
+        : history;
+      const res = await nextStep({ messages, draft });
+      setDraft(res.draft ?? {});
+      setCurrent(res.question);
+      pushAssistant(res.assistantMessage);
+
+      if (res.question.kind === 'confirm') {
+        setConfirmSummary(res.question.summary);
+        setConfirmOpen(true);
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to generate next step');
+    }
+  };
+
+  const submitText = async () => {
+    const text = input.trim();
+    if (!text) return;
+    setInput('');
+    pushUser(text);
+
+    // If the current question expects "about", we can prefill draft optimistically.
+    if (current?.kind === 'text' && current.id === 'about') {
+      setDraft((d) => ({ ...d, about: text }));
+    }
+
+    await runNext(text);
+  };
+
+  const submitSelection = async () => {
+    if (!current) return;
+    if (!pendingSelection || pendingSelection.values.length === 0) {
+      toast.error('Pick at least one option.');
+      return;
+    }
+
+    const chosen = pendingSelection.values;
+    const labelById =
+      current.kind === 'single' || current.kind === 'multi'
+        ? new Map(current.options.map((o) => [o.id, o.label] as const))
+        : new Map<string, string>();
+
+    const summary = chosen.map((id) => labelById.get(id) ?? id).join(', ');
+    pushUser(summary);
+
+    // Update draft deterministically based on the question id.
+    setDraft((d) => {
+      const base = { ...d };
+      if (current.kind === 'single') {
+        (base as any)[current.id] = chosen[0];
+      }
+      if (current.kind === 'multi') {
+        (base as any)[current.id] = chosen;
+      }
+      return base;
+    });
+
+    setPendingSelection(null);
+    await runNext(summary);
+  };
+
+  const renderInlineQuestion = () => {
+    if (!current) return null;
+
+    if (current.kind === 'text') {
+      return <div className="text-xs text-muted-foreground">{current.prompt}</div>;
+    }
+
+    if (current.kind === 'confirm') {
+      return <div className="text-xs text-muted-foreground">{current.prompt}</div>;
+    }
+
+    if (current.kind === 'single' || current.kind === 'multi') {
+      return (
+        <div className="space-y-3">
+          <MCQPicker
+            title={current.prompt}
+            options={current.options.map((o) => ({ id: o.id, label: o.label }))}
+            value={pendingSelection?.values ?? []}
+            onChange={(v) =>
+              setPendingSelection({
+                kind: current.kind,
+                values: v.slice(0, current.kind === 'single' ? 1 : 6),
+              })
+            }
+            multiple={current.kind === 'multi'}
+          />
+          <div className="flex justify-end">
+            <Button type="button" variant="outline" onClick={submitSelection} disabled={isThinking}>
+              Confirm selection
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  return (
+    <div className="mx-auto w-full max-w-3xl space-y-5 px-4">
+      <h1 className="text-center text-2xl font-medium tracking-tight text-foreground md:text-3xl">
+        What should we ask you about?
+      </h1>
+
+      <div
+        className={cn(
+          'rounded-2xl overflow-hidden border border-border/80 bg-card/80 shadow-sm',
+          'ring-1 ring-white/5 dark:bg-[#141414] dark:ring-white/6',
+        )}
+      >
+        <Textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              submitText();
+            }
+          }}
+          placeholder="Describe the contest you want…"
+          rows={5}
+          disabled={isThinking || current?.kind === 'single' || current?.kind === 'multi'}
+          className={cn(
+            'w-full resize-none bg-transparent px-5 py-4 text-sm text-foreground placeholder:text-muted-foreground',
+            'outline-none focus-visible:ring-0 disabled:opacity-60 border-0',
+          )}
+        />
+
+        <div className="flex flex-wrap items-center gap-2 border-t border-border/60 px-3 py-2.5">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            className="rounded-full border-border/80 bg-muted/40"
+            disabled
+          >
+            <PlusIcon weight="bold" />
+          </Button>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-muted/30 px-3 py-1 text-xs text-muted-foreground">
+            <ChatCircleIcon className="size-3.5" />
+            Agent
+          </span>
+          <div className="flex-1" />
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-muted/30 px-3 py-1 text-xs text-muted-foreground"
+            disabled
+          >
+            JS · TS
+            <CaretDownIcon className="size-3.5 opacity-70" />
+          </button>
+          <Button
+            type="button"
+            size="icon"
+            className="rounded-full"
+            disabled={
+              !canSend || isThinking || current?.kind === 'single' || current?.kind === 'multi'
+            }
+            onClick={submitText}
+            aria-label="Send"
+          >
+            <ArrowRightIcon weight="bold" />
+          </Button>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 px-4 py-3 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            <LinkSimpleIcon className="size-3.5 shrink-0 opacity-70" />
+            AI agent will ask options when needed
+          </span>
+          <div className="flex items-center gap-1 opacity-80" aria-hidden>
+            {['bg-red-500', 'bg-blue-500', 'bg-amber-500', 'bg-violet-500', 'bg-emerald-500'].map(
+              (c) => (
+                <span key={c} className={cn('size-2 rounded-full', c)} />
+              ),
+            )}
+          </div>
+        </div>
+      </div>
+
+      <ScrollArea className="h-[38vh]">
+        <div ref={scrollRef as any} className="space-y-3">
+          {toChatMessages(history)}
+          {isThinking ? (
+            <div className="text-xs text-muted-foreground">
+              <span className="mr-2">AI</span>
+              <span className="inline-flex items-center gap-2">
+                <SparkleIcon className="size-4 opacity-70" />
+                Thinking…
+              </span>
+            </div>
+          ) : null}
+        </div>
+      </ScrollArea>
+
+      {renderInlineQuestion()}
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create this contest?</DialogTitle>
+            <DialogDescription>
+              A new private contest will be created under your account. Confirm to proceed.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="text-xs leading-relaxed text-foreground whitespace-pre-wrap">
+            {confirmSummary}
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setConfirmOpen(false);
+                pushAssistant('No worries — tell me what you want to change.');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={isCreating || isThinking || !canCreate(draft)}
+              onClick={async () => {
+                try {
+                  const payload = draft as any;
+                  const { contestId } = await createContest(payload);
+                  setConfirmOpen(false);
+                  router.push(`/contests/${contestId}`);
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : 'Failed to create contest');
+                }
+              }}
+            >
+              {isCreating ? 'Creating…' : 'Create contest'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

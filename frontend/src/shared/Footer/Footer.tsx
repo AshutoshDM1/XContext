@@ -5,7 +5,7 @@ const Footer = () => {
     <Section className="pb-4">
       <footer className="flex flex-wrap items-center justify-between border-t border-border/60 text-xs pt-3 text-muted-foreground ">
         <div>© {new Date().getFullYear()} XContext</div>
-        <div className="flex gap-4">
+        <div className="hidden md:flex gap-4">
           <span>Privacy</span>
           <span>Terms</span>
           <span>Status</span>

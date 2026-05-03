@@ -1,6 +1,7 @@
 import { getHealthController } from '@/controllers/health/health.controller';
 import { Router } from 'express';
 import aiQuestionRouter from './ai-question.router';
+import aiContestRouter from './ai-contest.router';
 import contestRouter from './contest.router';
 import problemRouter from './problem.router';
 import codeRouter from './code.router';
@@ -16,6 +17,7 @@ router.get('/', (req, res) => {
 
 router.get('/health', getHealthController);
 router.use('/ai-question', aiQuestionRouter);
+router.use('/ai-contest', aiContestRouter);
 router.use('/contests', contestRouter);
 router.use('/categories', categoryRouter);
 router.use('/problems', problemRouter);

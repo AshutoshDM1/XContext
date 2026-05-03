@@ -10,7 +10,7 @@ import GoogleIcon from '@/components/icons/google';
 
 export default function Login() {
   return (
-    <div className="grid min-h-[calc(100dvh-10rem)] w-full grid-cols-1 lg:min-h-[calc(100dvh-9rem)] lg:grid-cols-2">
+    <div className="grid w-full grid-cols-1 h-full lg:min-h-[calc(100dvh-94px)] lg:grid-cols-2">
       <LoginBrandPanel />
       <LoginAuthPanel />
     </div>

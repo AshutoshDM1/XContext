@@ -8,10 +8,18 @@ import { useSession } from '@/lib/auth-client';
 
 const Navbar = () => {
   const { data: session } = useSession();
-  const links = [
+  const links: {
+    label: string;
+    href: string;
+    target?: string;
+    rel?: string;
+    icon: React.ElementType;
+  }[] = [
     {
       label: 'Github',
       href: 'https://github.com/AshutoshDM1/XContext',
+      target: '_blank',
+      rel: 'noopener noreferrer',
       icon: GithubLogoIcon,
     },
     {
@@ -24,11 +32,6 @@ const Navbar = () => {
       href: '/interviews',
       icon: BookOpenIcon,
     },
-    {
-      label: 'Login',
-      href: '/login',
-      icon: UserIcon,
-    },
   ];
   return (
     <Section>
@@ -37,18 +40,35 @@ const Navbar = () => {
           <div className="text-xs font-medium tracking-[0.22em] uppercase">XContext</div>
         </Link>
         <div className="flex items-center gap-4">
-          {links
-            .filter((l) => (session ? l.href !== '/login' : true))
-            .map((link) => (
-              <Link key={link.href} href={link.href}>
+          <div className="hidden md:flex items-center gap-4">
+            {links
+              .filter((l) => (session ? l.href !== '/login' : true))
+              .map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  target={link.target ?? undefined}
+                  rel={link.rel ?? undefined}
+                >
+                  <Button variant="outline" className="w-full">
+                    <link.icon className="size-4" />
+                    {link.label}
+                  </Button>
+                </Link>
+              ))}
+          </div>
+          <div className="flex items-center gap-4">
+            {session ? (
+              <Profile />
+            ) : (
+              <Link href="/login">
                 <Button variant="outline" className="w-full">
-                  <link.icon className="size-4" />
-                  {link.label}
+                  <UserIcon className="size-4" />
+                  Login
                 </Button>
               </Link>
-            ))}
-
-          {session ? <Profile /> : null}
+            )}
+          </div>
         </div>
       </header>
     </Section>
