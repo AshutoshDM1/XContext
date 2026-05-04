@@ -85,11 +85,14 @@ export function HomeContestChat() {
 
   const canSend = useMemo(() => input.trim().length > 0 && !isThinking, [input, isThinking]);
 
+  const hasUserMessage = useMemo(() => history.some((m) => m.role === 'user'), [history]);
+
   useEffect(() => {
-    // Best-effort autoscroll on new messages
     const el = scrollRef.current;
     if (!el) return;
-    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    const viewport = el.closest('[data-slot="scroll-area-viewport"]') as HTMLElement | null;
+    const target = viewport ?? el;
+    target.scrollTo({ top: target.scrollHeight, behavior: 'smooth' });
   }, [history.length, current?.kind]);
 
   const pushAssistant = (content: string) =>
@@ -161,54 +164,16 @@ export function HomeContestChat() {
     await runNext(summary);
   };
 
-  const renderInlineQuestion = () => {
-    if (!current) return null;
+  const initialAssistantText = history[0]?.role === 'assistant' ? history[0].content : '';
 
-    if (current.kind === 'text') {
-      return <div className="text-xs text-muted-foreground">{current.prompt}</div>;
-    }
-
-    if (current.kind === 'confirm') {
-      return <div className="text-xs text-muted-foreground">{current.prompt}</div>;
-    }
-
-    if (current.kind === 'single' || current.kind === 'multi') {
-      return (
-        <div className="space-y-3">
-          <MCQPicker
-            title={current.prompt}
-            options={current.options.map((o) => ({ id: o.id, label: o.label }))}
-            value={pendingSelection?.values ?? []}
-            onChange={(v) =>
-              setPendingSelection({
-                kind: current.kind,
-                values: v.slice(0, current.kind === 'single' ? 1 : 6),
-              })
-            }
-            multiple={current.kind === 'multi'}
-          />
-          <div className="flex justify-end">
-            <Button type="button" variant="outline" onClick={submitSelection} disabled={isThinking}>
-              Confirm selection
-            </Button>
-          </div>
-        </div>
-      );
-    }
-
-    return null;
-  };
-
-  return (
-    <div className="mx-auto w-full max-w-3xl space-y-5 px-4">
-      <h1 className="text-center text-2xl font-medium tracking-tight text-foreground md:text-3xl">
-        What should we ask you about?
-      </h1>
-
+  const renderComposer = (opts?: { rows?: number }) => {
+    const rows = opts?.rows ?? (hasUserMessage ? 3 : 5);
+    return (
       <div
         className={cn(
           'rounded-2xl overflow-hidden border border-border/80 bg-card/80 shadow-sm',
           'ring-1 ring-white/5 dark:bg-[#141414] dark:ring-white/6',
+          hasUserMessage && 'shrink-0',
         )}
       >
         <Textarea
@@ -221,7 +186,7 @@ export function HomeContestChat() {
             }
           }}
           placeholder="Describe the contest you want…"
-          rows={5}
+          rows={rows}
           disabled={isThinking || current?.kind === 'single' || current?.kind === 'multi'}
           className={cn(
             'w-full resize-none bg-transparent px-5 py-4 text-sm text-foreground placeholder:text-muted-foreground',
@@ -280,23 +245,98 @@ export function HomeContestChat() {
           </div>
         </div>
       </div>
+    );
+  };
 
-      <ScrollArea className="h-[38vh]">
-        <div ref={scrollRef as any} className="space-y-3">
-          {toChatMessages(history)}
-          {isThinking ? (
-            <div className="text-xs text-muted-foreground">
-              <span className="mr-2">AI</span>
-              <span className="inline-flex items-center gap-2">
-                <SparkleIcon className="size-4 opacity-70" />
-                Thinking…
-              </span>
-            </div>
-          ) : null}
+  const renderInlineQuestion = () => {
+    if (!current) return null;
+
+    if (current.kind === 'text') {
+      return <div className="text-xs text-muted-foreground">{current.prompt}</div>;
+    }
+
+    if (current.kind === 'confirm') {
+      return <div className="text-xs text-muted-foreground">{current.prompt}</div>;
+    }
+
+    if (current.kind === 'single' || current.kind === 'multi') {
+      return (
+        <div className="space-y-3">
+          <MCQPicker
+            title={current.prompt}
+            options={current.options.map((o) => ({ id: o.id, label: o.label }))}
+            value={pendingSelection?.values ?? []}
+            onChange={(v) =>
+              setPendingSelection({
+                kind: current.kind,
+                values: v.slice(0, current.kind === 'single' ? 1 : 6),
+              })
+            }
+            multiple={current.kind === 'multi'}
+          />
+          <div className="flex justify-end">
+            <Button type="button" variant="outline" onClick={submitSelection} disabled={isThinking}>
+              Confirm selection
+            </Button>
+          </div>
         </div>
-      </ScrollArea>
+      );
+    }
 
-      {renderInlineQuestion()}
+    return null;
+  };
+
+  return (
+    <div
+      className={cn(
+        'mx-auto flex w-full max-w-3xl flex-col gap-6 px-4',
+        hasUserMessage ? 'min-h-[calc(100vh-10rem)]' : 'min-h-[calc(100vh-12rem)]',
+      )}
+    >
+      <h1 className="shrink-0 text-center text-2xl font-medium tracking-tight text-foreground md:text-3xl">
+        What should we ask you about?
+      </h1>
+
+      {!hasUserMessage ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-8 py-10">
+          <div
+            className={cn(
+              'w-full max-w-2xl rounded-2xl border border-border/80 bg-card/60 px-5 py-5 text-left shadow-sm',
+              'ring-1 ring-white/5 dark:bg-[#141414] dark:ring-white/6',
+            )}
+          >
+            <div className="text-xs font-medium text-muted-foreground">AI</div>
+            <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+              {initialAssistantText}
+            </p>
+          </div>
+
+          <div className="w-full">{renderComposer({ rows: 5 })}</div>
+
+          {renderInlineQuestion()}
+        </div>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col gap-4 pt-6">
+          <ScrollArea className="h-0 min-h-0 flex-1 pr-3">
+            <div ref={scrollRef as any} className="space-y-3 pr-2 pb-2">
+              {toChatMessages(history)}
+              {isThinking ? (
+                <div className="text-xs text-muted-foreground">
+                  <span className="mr-2">AI</span>
+                  <span className="inline-flex items-center gap-2">
+                    <SparkleIcon className="size-4 opacity-70" />
+                    Thinking…
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          </ScrollArea>
+
+          {renderInlineQuestion()}
+
+          {renderComposer({ rows: 3 })}
+        </div>
+      )}
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="sm:max-w-lg">
