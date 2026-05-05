@@ -40,7 +40,7 @@ async function hasSession(req: NextRequest) {
   }
 }
 
-export async function middleware(req: NextRequest) {
+export default async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Only enforce auth on protected app routes.

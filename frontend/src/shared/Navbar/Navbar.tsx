@@ -5,6 +5,7 @@ import { BookOpenIcon, GithubLogoIcon, TrophyIcon, UserIcon } from '@phosphor-ic
 import Section from '../Section/Section';
 import Profile from './Profile';
 import { useSession } from '@/lib/auth-client';
+import { Star } from 'lucide-react';
 
 const Navbar = () => {
   const { data: session } = useSession();
@@ -53,6 +54,11 @@ const Navbar = () => {
                   <Button variant="outline" className="w-full">
                     <link.icon className="size-4" />
                     {link.label}
+                    {link.label === 'Github' && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Star className="size-4 text-yellow-400 fill-yellow-400" />
+                      </span>
+                    )}
                   </Button>
                 </Link>
               ))}

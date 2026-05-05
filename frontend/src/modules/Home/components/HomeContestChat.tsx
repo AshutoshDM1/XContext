@@ -30,6 +30,8 @@ import {
   CreateContestDialog,
   type CreateContestDialogInitialValues,
 } from '@/modules/Contests/components/CreateContestDialog';
+import { useSession } from '@/lib/auth-client';
+import PleaseLogin from './PleaseLogin';
 import type {
   AiContestDraft,
   AiContestNextResponse,
@@ -56,6 +58,8 @@ function toChatMessages(history: ChatMessage[]) {
 export function HomeContestChat() {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const { data: session, isPending: isSessionPending } = useSession();
+  const isLoggedIn = Boolean(session);
 
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState<AiContestDraft>({});
@@ -63,6 +67,7 @@ export function HomeContestChat() {
   const [current, setCurrent] = useState<AiContestNextResponse['question'] | null>(null);
   const [input, setInput] = useState('');
   const [pendingSelection, setPendingSelection] = useState<PendingSelection>(null);
+  const [loginOpen, setLoginOpen] = useState(false);
 
   const { mutateAsync: nextStep, isPending: isThinking } = useAiContestNext();
   const { mutateAsync: previewContest, isPending: isPreviewing } = useAiContestPreview();
@@ -129,6 +134,12 @@ export function HomeContestChat() {
   const submitText = async () => {
     const text = input.trim();
     if (!text) return;
+
+    if (!isSessionPending && !isLoggedIn) {
+      setLoginOpen(true);
+      return;
+    }
+
     setInput('');
     pushUser(text);
 
@@ -150,6 +161,11 @@ export function HomeContestChat() {
     if (!current) return;
     if (!pendingSelection || pendingSelection.values.length === 0) {
       toast.error('Pick at least one option.');
+      return;
+    }
+
+    if (!isSessionPending && !isLoggedIn) {
+      setLoginOpen(true);
       return;
     }
 
@@ -208,7 +224,7 @@ export function HomeContestChat() {
           }
           className={cn(
             'w-full resize-none bg-transparent px-5 py-4 text-sm text-foreground placeholder:text-muted-foreground',
-            'outline-none focus-visible:ring-0 disabled:opacity-60 border-0 pb-14',
+            'outline-none focus-visible:ring-0 disabled:opacity-60 border-0 pb-20',
           )}
         />
 
@@ -238,7 +254,6 @@ export function HomeContestChat() {
           >
             <SelectTrigger className="h-7 w-auto rounded-full border border-border/80 bg-muted/30 px-3 py-1 text-xs text-muted-foreground">
               <SelectValue />
-              <CaretDownIcon className="ml-1 size-3.5 opacity-70" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="javascript">JavaScript</SelectItem>
@@ -369,6 +384,12 @@ export function HomeContestChat() {
         onCreated={(contestId) => {
           router.push(`/contests/${contestId}`);
         }}
+      />
+
+      <PleaseLogin
+        open={loginOpen}
+        onClose={() => setLoginOpen(false)}
+        onLogin={() => router.push('/login?redirect=/')}
       />
     </div>
   );
