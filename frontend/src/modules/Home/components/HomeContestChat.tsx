@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -65,13 +66,7 @@ export function HomeContestChat() {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
-  const [history, setHistory] = useState<ChatMessage[]>([
-    {
-      role: 'assistant',
-      content:
-        'Tell me what you want to build a contest for. I’ll ask a few quick questions and generate it for you.',
-    },
-  ]);
+  const [history, setHistory] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState<AiContestDraft>({});
   const [current, setCurrent] = useState<AiContestNextResponse['question'] | null>(null);
   const [input, setInput] = useState('');
@@ -164,14 +159,14 @@ export function HomeContestChat() {
     await runNext(summary);
   };
 
-  const initialAssistantText = history[0]?.role === 'assistant' ? history[0].content : '';
+  console.log(hasUserMessage);
 
   const renderComposer = (opts?: { rows?: number }) => {
     const rows = opts?.rows ?? (hasUserMessage ? 3 : 5);
     return (
       <div
         className={cn(
-          'rounded-2xl overflow-hidden border border-border/80 bg-card/80 shadow-sm',
+          'rounded-none overflow-hidden border border-border/80 bg-card/80 shadow-sm',
           'ring-1 ring-white/5 dark:bg-[#141414] dark:ring-white/6',
           hasUserMessage && 'shrink-0',
         )}
@@ -190,7 +185,7 @@ export function HomeContestChat() {
           disabled={isThinking || current?.kind === 'single' || current?.kind === 'multi'}
           className={cn(
             'w-full resize-none bg-transparent px-5 py-4 text-sm text-foreground placeholder:text-muted-foreground',
-            'outline-none focus-visible:ring-0 disabled:opacity-60 border-0',
+            'outline-none focus-visible:ring-0 disabled:opacity-60 border-0 pb-14',
           )}
         />
 
@@ -289,54 +284,36 @@ export function HomeContestChat() {
   return (
     <div
       className={cn(
-        'mx-auto flex w-full max-w-3xl flex-col gap-6 px-4',
+        'mx-auto flex flex-1 flex-col justify-center w-full max-w-3xl gap-6 px-4',
         hasUserMessage ? 'min-h-[calc(100vh-10rem)]' : 'min-h-[calc(100vh-12rem)]',
       )}
     >
       <h1 className="shrink-0 text-center text-2xl font-medium tracking-tight text-foreground md:text-3xl">
         What should we ask you about?
       </h1>
+      <p className="text-center text-sm text-muted-foreground">
+        Tell me what you want to build a contest or problem to practice for. I’ll ask a few quick
+        questions and generate it for you.
+      </p>
 
-      {!hasUserMessage ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-8 py-10">
-          <div
-            className={cn(
-              'w-full max-w-2xl rounded-2xl border border-border/80 bg-card/60 px-5 py-5 text-left shadow-sm',
-              'ring-1 ring-white/5 dark:bg-[#141414] dark:ring-white/6',
-            )}
-          >
-            <div className="text-xs font-medium text-muted-foreground">AI</div>
-            <p className="mt-2 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
-              {initialAssistantText}
-            </p>
+      <div className="flex min-h-0 flex-col gap-4 pt-6">
+        <ScrollArea className="h-0 min-h-0 flex-1 pr-3">
+          <div ref={scrollRef} className="space-y-3 pr-2 pb-2">
+            {toChatMessages(history)}
+            {isThinking ? (
+              <div className="text-xs text-muted-foreground">
+                <span className="mr-2 mb-4">AI</span>
+                <span className="inline-flex items-center gap-2 relative top-1">
+                  <SparkleIcon className="size-4 opacity-70" />
+                  Thinking…
+                </span>
+              </div>
+            ) : null}
           </div>
-
-          <div className="w-full">{renderComposer({ rows: 5 })}</div>
-
-          {renderInlineQuestion()}
-        </div>
-      ) : (
-        <div className="flex min-h-0 flex-1 flex-col gap-4 pt-6">
-          <ScrollArea className="h-0 min-h-0 flex-1 pr-3">
-            <div ref={scrollRef as any} className="space-y-3 pr-2 pb-2">
-              {toChatMessages(history)}
-              {isThinking ? (
-                <div className="text-xs text-muted-foreground">
-                  <span className="mr-2">AI</span>
-                  <span className="inline-flex items-center gap-2">
-                    <SparkleIcon className="size-4 opacity-70" />
-                    Thinking…
-                  </span>
-                </div>
-              ) : null}
-            </div>
-          </ScrollArea>
-
-          {renderInlineQuestion()}
-
-          {renderComposer({ rows: 3 })}
-        </div>
-      )}
+        </ScrollArea>
+        {renderInlineQuestion()}
+        {renderComposer({ rows: 3 })}
+      </div>
 
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="sm:max-w-lg">
