@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PlusIcon, TrashIcon } from '@phosphor-icons/react';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,14 +30,44 @@ import { useCategories } from '@/hooks/useCategories';
 import { DateTimePicker } from './DateTimePicker';
 import { toast } from 'sonner';
 
-interface ProjectInput {
+export interface ProjectInput {
   projectId: string;
   problemMarkdown: string;
 }
 
-export function CreateContestDialog() {
-  const [open, setOpen] = useState(false);
-  const { mutate: createContest, isPending } = useCreateContest();
+export interface CreateContestDialogInitialValues {
+  title: string;
+  shortDescription: string;
+  topbarDescription?: string;
+  status?: ContestStatus;
+  startsAt?: Date | null;
+  endsAt?: Date | null;
+  categoryIds?: number[];
+  projects?: ProjectInput[];
+}
+
+export function CreateContestDialog({
+  open: controlledOpen,
+  onOpenChange,
+  initialValues,
+  showTrigger = true,
+  onCreated,
+}: {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  initialValues?: Partial<CreateContestDialogInitialValues> | null;
+  showTrigger?: boolean;
+  onCreated?: (contestId: number) => void;
+}) {
+  const [openInternal, setOpenInternal] = useState(false);
+  const open = controlledOpen ?? openInternal;
+
+  const setOpen = (nextOpen: boolean) => {
+    onOpenChange?.(nextOpen);
+    if (controlledOpen === undefined) setOpenInternal(nextOpen);
+  };
+
+  const { mutateAsync: createContest, isPending } = useCreateContest();
   const { data: categories } = useCategories();
 
   const [title, setTitle] = useState('');
@@ -79,7 +110,30 @@ export function CreateContestDialog() {
     setProjects([{ projectId: '', problemMarkdown: '' }]);
   };
 
-  const handleCreate = () => {
+  useEffect(() => {
+    if (!open) {
+      resetForm();
+      return;
+    }
+
+    if (!initialValues) return;
+
+    setTitle(initialValues.title ?? '');
+    setShortDescription(initialValues.shortDescription ?? '');
+    setTopbarDescription(initialValues.topbarDescription ?? '');
+    setStatus(initialValues.status ?? 'LIVE');
+    setStartsAt(initialValues.startsAt ?? null);
+    setEndsAt(initialValues.endsAt ?? null);
+    setCategoryIds(initialValues.categoryIds ?? []);
+    setProjects(
+      initialValues.projects && initialValues.projects.length > 0
+        ? initialValues.projects
+        : [{ projectId: '', problemMarkdown: '' }],
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialValues]);
+
+  const handleCreate = async () => {
     if (!title.trim()) {
       toast.error('Please enter a contest title');
       return;
@@ -95,37 +149,35 @@ export function CreateContestDialog() {
       return;
     }
 
-    createContest(
-      {
-        title,
-        shortDescription,
-        topbarDescription: topbarDescription || undefined,
-        status,
-        startsAt: startsAt ? startsAt.toISOString() : undefined,
-        endsAt: endsAt ? endsAt.toISOString() : undefined,
-        categoryIds: categoryIds.length > 0 ? categoryIds : undefined,
-        projects: projects.map((p) => ({
-          projectId: p.projectId.trim(),
-          problemMarkdown: p.problemMarkdown.trim(),
-        })),
-      },
-      {
-        onSuccess: () => {
-          resetForm();
-          setOpen(false);
-        },
-      },
-    );
+    const created = await createContest({
+      title,
+      shortDescription,
+      topbarDescription: topbarDescription || undefined,
+      status,
+      startsAt: startsAt ? startsAt.toISOString() : undefined,
+      endsAt: endsAt ? endsAt.toISOString() : undefined,
+      categoryIds: categoryIds.length > 0 ? categoryIds : undefined,
+      projects: projects.map((p) => ({
+        projectId: p.projectId.trim(),
+        problemMarkdown: p.problemMarkdown.trim(),
+      })),
+    });
+
+    onCreated?.(created.id);
+    resetForm();
+    setOpen(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="default">
-          <PlusIcon className="size-4" />
-          Create Contest
-        </Button>
-      </DialogTrigger>
+      {showTrigger ? (
+        <DialogTrigger asChild>
+          <Button variant="default">
+            <PlusIcon className="size-4" />
+            Create Contest
+          </Button>
+        </DialogTrigger>
+      ) : null}
       <DialogContent className="sm:max-w-4xl max-h-[90vh] p-0">
         <DialogHeader className="px-6 pt-6">
           <DialogTitle>Create Your Contest</DialogTitle>

@@ -9,6 +9,7 @@ import {
   aiContestNextRequestSchema,
   aiContestNextResponseSchema,
   createAiContestRequestSchema,
+  type CreateAiContestRequest,
   type AiContestDraft,
   type AiContestModelOutput,
 } from './validation';
@@ -55,6 +56,48 @@ function extractJson(text: string) {
   const end = t.lastIndexOf('}');
   if (start === -1 || end === -1 || end <= start) return null;
   return t.slice(start, end + 1);
+}
+
+async function generateAiContestModelOutput(
+  input: CreateAiContestRequest,
+): Promise<AiContestModelOutput> {
+  const gateway = createGateway({ apiKey });
+  const prompt = JSON.stringify(input, null, 2);
+
+  let modelJson: AiContestModelOutput;
+  try {
+    const { text } = await generateText({
+      model: gateway(DEFAULT_MODEL),
+      system: AI_CONTEST_SYSTEM,
+      prompt: `User answers (JSON):\n${prompt}`,
+    });
+
+    const jsonText = extractJson(text);
+    if (!jsonText) {
+      throw new Error('AI returned invalid JSON');
+    }
+
+    const parsed = JSON.parse(jsonText) as unknown;
+    modelJson = aiContestModelOutputSchema.parse(parsed);
+  } catch (error) {
+    console.error(error);
+    throw new Error('Failed to generate contest preview');
+  }
+
+  // Keep the preview/edit experience clean (remove accidental leading/trailing whitespace).
+  return {
+    contest: {
+      ...modelJson.contest,
+      title: modelJson.contest.title.trim(),
+      shortDescription: modelJson.contest.shortDescription.trim(),
+      topbarDescription: modelJson.contest.topbarDescription?.trim(),
+    },
+    problem: {
+      ...modelJson.problem,
+      projectId: modelJson.problem.projectId.trim(),
+      problemMarkdown: modelJson.problem.problemMarkdown.trim(),
+    },
+  };
 }
 
 const AI_CONTEST_NEXT_SYSTEM = `You are an agent that helps a user create a private coding contest.
@@ -144,29 +187,24 @@ export const getAiContestNextController = asyncHandler(async (req: Request, res:
   }
 });
 
+export const previewAiContestController = asyncHandler(async (req: Request, res: Response) => {
+  const input = createAiContestRequestSchema.parse(req.body);
+
+  try {
+    const modelJson = await generateAiContestModelOutput(input);
+    res.status(200).json(modelJson);
+  } catch (error) {
+    console.error(error);
+    res.status(503).json({ message: 'Failed to generate contest preview' });
+  }
+});
+
 export const createAiContestController = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req as AuthenticatedRequest).user.id;
   const input = createAiContestRequestSchema.parse(req.body);
-
-  const gateway = createGateway({ apiKey });
-  const prompt = JSON.stringify(input, null, 2);
-
   let modelJson: AiContestModelOutput;
   try {
-    const { text } = await generateText({
-      model: gateway(DEFAULT_MODEL),
-      system: AI_CONTEST_SYSTEM,
-      prompt: `User answers (JSON):\n${prompt}`,
-    });
-
-    const jsonText = extractJson(text);
-    if (!jsonText) {
-      res.status(503).json({ message: 'AI returned invalid JSON' });
-      return;
-    }
-
-    const parsed = JSON.parse(jsonText) as unknown;
-    modelJson = aiContestModelOutputSchema.parse(parsed);
+    modelJson = await generateAiContestModelOutput(input);
   } catch (error) {
     console.error(error);
     res.status(503).json({ message: 'Failed to generate contest' });

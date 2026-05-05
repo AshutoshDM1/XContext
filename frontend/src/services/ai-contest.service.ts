@@ -15,6 +15,18 @@ export type CreateAiContestResponse = {
   problemId: number;
 };
 
+export type AiContestPreviewResponse = {
+  contest: {
+    title: string;
+    shortDescription: string;
+    topbarDescription?: string;
+  };
+  problem: {
+    projectId: string;
+    problemMarkdown: string;
+  };
+};
+
 export type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
 export type AiContestDraft = Partial<CreateAiContestInput>;
@@ -79,6 +91,20 @@ export async function createAiContest(
     const data = response.data as Partial<CreateAiContestResponse> & { message?: string };
     if (!data.contestId) throw new Error(data.message || 'Invalid response from server');
     return { contestId: data.contestId, problemId: data.problemId ?? 0 };
+  } catch (error: unknown) {
+    throw handleError(error);
+  }
+}
+
+export async function previewAiContest(
+  input: CreateAiContestInput,
+): Promise<AiContestPreviewResponse> {
+  try {
+    const response = await baseApi.post('/api/v1/ai-contest/preview', input, {
+      headers: { 'Content-Type': 'application/json' },
+      withCredentials: true,
+    });
+    return response.data as AiContestPreviewResponse;
   } catch (error: unknown) {
     throw handleError(error);
   }

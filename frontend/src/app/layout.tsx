@@ -8,6 +8,7 @@ import { Toaster } from '@/components/ui/sonner';
 import Navbar from '@/shared/Navbar/Navbar';
 import Footer from '@/shared/Footer/Footer';
 import { ThemeToggle } from '@/components/theme-toggle';
+import Topbar from '@/shared/Topbar/Topbar';
 
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
 
@@ -35,6 +36,7 @@ export default function RootLayout({
             <Toaster position="top-right" offset={5} />
             <ThemeToggle />
             <main className="min-h-dvh">
+              <Topbar />
               <Navbar />
               <div className="min-h-[calc(100dvh-94px)]">{children}</div>
               <Footer />

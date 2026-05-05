@@ -17,16 +17,19 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { MCQPicker } from './MCQPicker';
-import { useAiContest, useAiContestNext } from '@/hooks/use-ai-contest';
+import { useAiContestNext, useAiContestPreview } from '@/hooks/use-ai-contest';
+import {
+  CreateContestDialog,
+  type CreateContestDialogInitialValues,
+} from '@/modules/Contests/components/CreateContestDialog';
 import type {
   AiContestDraft,
   AiContestNextResponse,
@@ -50,35 +53,28 @@ function toChatMessages(history: ChatMessage[]) {
   ));
 }
 
-function canCreate(draft: AiContestDraft) {
-  return Boolean(
-    draft.about &&
-    draft.language &&
-    draft.difficulty &&
-    draft.length &&
-    draft.backendLogic &&
-    Array.isArray(draft.topics) &&
-    draft.topics.length > 0,
-  );
-}
-
 export function HomeContestChat() {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   const [history, setHistory] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState<AiContestDraft>({});
+  const [languagePref, setLanguagePref] = useState<'javascript' | 'typescript'>('typescript');
   const [current, setCurrent] = useState<AiContestNextResponse['question'] | null>(null);
   const [input, setInput] = useState('');
   const [pendingSelection, setPendingSelection] = useState<PendingSelection>(null);
 
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmSummary, setConfirmSummary] = useState<string>('');
-
   const { mutateAsync: nextStep, isPending: isThinking } = useAiContestNext();
-  const { mutateAsync: createContest, isPending: isCreating } = useAiContest();
+  const { mutateAsync: previewContest, isPending: isPreviewing } = useAiContestPreview();
 
-  const canSend = useMemo(() => input.trim().length > 0 && !isThinking, [input, isThinking]);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorInitialValues, setEditorInitialValues] =
+    useState<CreateContestDialogInitialValues | null>(null);
+
+  const canSend = useMemo(
+    () => input.trim().length > 0 && !isThinking && !editorOpen,
+    [input, isThinking, editorOpen],
+  );
 
   const hasUserMessage = useMemo(() => history.some((m) => m.role === 'user'), [history]);
 
@@ -105,8 +101,25 @@ export function HomeContestChat() {
       pushAssistant(res.assistantMessage);
 
       if (res.question.kind === 'confirm') {
-        setConfirmSummary(res.question.summary);
-        setConfirmOpen(true);
+        const fullDraft = (res.draft ?? {}) as AiContestDraft;
+        try {
+          const preview = await previewContest(fullDraft as any);
+          setEditorInitialValues({
+            title: preview.contest.title,
+            shortDescription: preview.contest.shortDescription,
+            topbarDescription: preview.contest.topbarDescription ?? '',
+            status: 'LIVE',
+            projects: [
+              {
+                projectId: preview.problem.projectId,
+                problemMarkdown: preview.problem.problemMarkdown,
+              },
+            ],
+          });
+          setEditorOpen(true);
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : 'Failed to generate contest details');
+        }
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to generate next step');
@@ -122,6 +135,12 @@ export function HomeContestChat() {
     // If the current question expects "about", we can prefill draft optimistically.
     if (current?.kind === 'text' && current.id === 'about') {
       setDraft((d) => ({ ...d, about: text }));
+    }
+
+    // Ensure we send language preference in the very first request to AI.
+    // (So the agent can skip asking language if already chosen.)
+    if (!draft.language) {
+      setDraft((d) => ({ ...d, language: languagePref }));
     }
 
     await runNext(text);
@@ -159,8 +178,6 @@ export function HomeContestChat() {
     await runNext(summary);
   };
 
-  console.log(hasUserMessage);
-
   const renderComposer = (opts?: { rows?: number }) => {
     const rows = opts?.rows ?? (hasUserMessage ? 3 : 5);
     return (
@@ -182,7 +199,13 @@ export function HomeContestChat() {
           }}
           placeholder="Describe the contest you want…"
           rows={rows}
-          disabled={isThinking || current?.kind === 'single' || current?.kind === 'multi'}
+          disabled={
+            editorOpen ||
+            isPreviewing ||
+            isThinking ||
+            current?.kind === 'single' ||
+            current?.kind === 'multi'
+          }
           className={cn(
             'w-full resize-none bg-transparent px-5 py-4 text-sm text-foreground placeholder:text-muted-foreground',
             'outline-none focus-visible:ring-0 disabled:opacity-60 border-0 pb-14',
@@ -204,14 +227,24 @@ export function HomeContestChat() {
             Agent
           </span>
           <div className="flex-1" />
-          <button
-            type="button"
-            className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-muted/30 px-3 py-1 text-xs text-muted-foreground"
-            disabled
+          <Select
+            value={languagePref}
+            onValueChange={(v) => {
+              const next = v === 'javascript' ? 'javascript' : 'typescript';
+              setLanguagePref(next);
+              setDraft((d) => ({ ...d, language: next }));
+            }}
+            disabled={editorOpen || isPreviewing || isThinking}
           >
-            JS · TS
-            <CaretDownIcon className="size-3.5 opacity-70" />
-          </button>
+            <SelectTrigger className="h-7 w-auto rounded-full border border-border/80 bg-muted/30 px-3 py-1 text-xs text-muted-foreground">
+              <SelectValue />
+              <CaretDownIcon className="ml-1 size-3.5 opacity-70" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="javascript">JavaScript</SelectItem>
+              <SelectItem value="typescript">TypeScript</SelectItem>
+            </SelectContent>
+          </Select>
           <Button
             type="button"
             size="icon"
@@ -251,7 +284,17 @@ export function HomeContestChat() {
     }
 
     if (current.kind === 'confirm') {
-      return <div className="text-xs text-muted-foreground">{current.prompt}</div>;
+      return (
+        <div className="space-y-2">
+          <div className="text-xs text-muted-foreground">{current.prompt}</div>
+          <div className="whitespace-pre-wrap rounded border border-border/60 bg-muted/20 px-3 py-2 text-xs text-foreground">
+            {current.summary}
+          </div>
+          {isPreviewing ? (
+            <div className="text-xs text-muted-foreground">Generating contest details…</div>
+          ) : null}
+        </div>
+      );
     }
 
     if (current.kind === 'single' || current.kind === 'multi') {
@@ -315,49 +358,18 @@ export function HomeContestChat() {
         {renderComposer({ rows: 3 })}
       </div>
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Create this contest?</DialogTitle>
-            <DialogDescription>
-              A new private contest will be created under your account. Confirm to proceed.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="text-xs leading-relaxed text-foreground whitespace-pre-wrap">
-            {confirmSummary}
-          </div>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setConfirmOpen(false);
-                pushAssistant('No worries — tell me what you want to change.');
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              disabled={isCreating || isThinking || !canCreate(draft)}
-              onClick={async () => {
-                try {
-                  const payload = draft as any;
-                  const { contestId } = await createContest(payload);
-                  setConfirmOpen(false);
-                  router.push(`/contests/${contestId}`);
-                } catch (e) {
-                  toast.error(e instanceof Error ? e.message : 'Failed to create contest');
-                }
-              }}
-            >
-              {isCreating ? 'Creating…' : 'Create contest'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CreateContestDialog
+        open={editorOpen}
+        onOpenChange={(open) => {
+          setEditorOpen(open);
+          if (!open) setEditorInitialValues(null);
+        }}
+        initialValues={editorInitialValues}
+        showTrigger={false}
+        onCreated={(contestId) => {
+          router.push(`/contests/${contestId}`);
+        }}
+      />
     </div>
   );
 }
