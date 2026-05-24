@@ -2,9 +2,9 @@ name: Deploy Backend (DO VM)
 
 on:
   push:
-    branches: [main]
+    branches: [test]
     paths:
-      - 'backend/**'
+      - 'apps/backend/**'
       - '.github/workflows/deploy.yaml'
   workflow_dispatch: {}
 
@@ -38,7 +38,7 @@ jobs:
             fi
             bun -v
 
-            cd "$HOME/XContext/backend"
+            cd "$HOME/XContext/apps/backend"
 
             git stash push -u -m "ci-deploy-$(date -u +%Y%m%dT%H%M%SZ)" || true
             git fetch origin main

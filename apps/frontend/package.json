@@ -6,8 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "format": "bunx prettier . --write --config ../.prettierrc.json --ignore-path ../.prettierignore",
-    "format:check": "bunx prettier . --check --config ../.prettierrc.json --ignore-path ../.prettierignore",
+    "format": "bunx prettier . --write --config ../../.prettierrc.json --ignore-path ../../.prettierignore",
+    "format:check": "bunx prettier . --check --config ../../.prettierrc.json --ignore-path ../../.prettierignore",
     "lint": "eslint"
   },
   "dependencies": {

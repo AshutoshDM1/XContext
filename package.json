@@ -1,13 +1,21 @@
 {
   "name": "xcontext",
   "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
+    "predev": "kill-port 7000 3000",
+    "dev": "concurrently --kill-others -n \"backend,frontend\" -c \"blue,magenta\" \"bun dev:backend\" \"bun dev:frontend\"",
+    "build": "bun run --filter \"*\" build",
     "prepare": "husky install",
-    "format:check": "bun run --cwd backend format:check && bun run --cwd frontend format:check",
-    "format": "bun run --cwd backend format && bun run --cwd frontend format"
+    "format:check": "bun run --filter \"*\" format:check",
+    "format": "bun run --filter \"*\" format",
+    "dev:backend": "bun --filter backend dev",
+    "dev:frontend": "bun --filter frontend dev"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "husky": "^9.1.7"
   }
 }
-

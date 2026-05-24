@@ -1,5 +1,3 @@
 bun run format
 bun run format:check
 git add .
-cd frontend && bun run build
-cd ../ && cd backend && bun run build
