@@ -27,11 +27,11 @@ export const usePublicContests = () => {
   });
 };
 
-export const useContest = (id: number) => {
+export const useContest = (id: number, options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: ['contests', id],
     queryFn: () => getContestById(id),
-    enabled: !!id,
+    enabled: options?.enabled ?? !!id,
   });
 };
 

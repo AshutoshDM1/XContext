@@ -13,6 +13,12 @@ import { user } from '@/db/auth-schema';
 import { createContestSchema, updateContestSchema } from './validation';
 import asyncHandler from '@/utils/asyncHandler';
 import type { AuthenticatedRequest } from '@/middleware/authentication';
+import {
+  invalidateCache,
+  CACHE_KEYS,
+  getPrivateContestsKey,
+  getSingleContestInvalidationKeys,
+} from '@/middleware/cache';
 
 function canReadContestForUser(
   contestData: { userId: string; isPublic: boolean; isPrivate: boolean },
@@ -119,6 +125,16 @@ export const createContest = asyncHandler(async (req: Request, res: Response) =>
       },
     },
   });
+
+  invalidateCache(getPrivateContestsKey(userId)).catch((err) => {
+    console.error('[Redis Cache] Invalidation error on createContest (private):', err);
+  });
+
+  if (contestWithProjects?.isPublic) {
+    invalidateCache(CACHE_KEYS.publicContests).catch((err) => {
+      console.error('[Redis Cache] Invalidation error on createContest:', err);
+    });
+  }
 
   res.status(201).json(contestWithProjects);
 });
@@ -418,6 +434,20 @@ export const updateContest = asyncHandler(async (req: Request, res: Response) =>
     },
   });
 
+  invalidateCache(getPrivateContestsKey(userId)).catch((err) => {
+    console.error('[Redis Cache] Invalidation error on updateContest (private):', err);
+  });
+
+  invalidateCache(getSingleContestInvalidationKeys(contestId, userId)).catch((err) => {
+    console.error('[Redis Cache] Invalidation error on updateContest (single):', err);
+  });
+
+  if (existingContest.isPublic || updated?.isPublic) {
+    invalidateCache(CACHE_KEYS.publicContests).catch((err) => {
+      console.error('[Redis Cache] Invalidation error on updateContest:', err);
+    });
+  }
+
   res.json(updated);
 });
 
@@ -443,6 +473,28 @@ export const deleteContest = asyncHandler(async (req: Request, res: Response) =>
   if (!deleted) {
     res.status(404).json({ message: 'Contest not found' });
     return;
+  }
+
+  const keysToInvalidate = Array.from(
+    new Set([getPrivateContestsKey(existing.userId), getPrivateContestsKey(userId)]),
+  );
+  invalidateCache(keysToInvalidate).catch((err) => {
+    console.error('[Redis Cache] Invalidation error on deleteContest (private):', err);
+  });
+
+  invalidateCache(getSingleContestInvalidationKeys(contestId, existing.userId)).catch((err) => {
+    console.error('[Redis Cache] Invalidation error on deleteContest (single):', err);
+  });
+  if (userId !== existing.userId) {
+    invalidateCache(getSingleContestInvalidationKeys(contestId, userId)).catch((err) => {
+      console.error('[Redis Cache] Invalidation error on deleteContest (single deleter):', err);
+    });
+  }
+
+  if (deleted.isPublic) {
+    invalidateCache(CACHE_KEYS.publicContests).catch((err) => {
+      console.error('[Redis Cache] Invalidation error on deleteContest:', err);
+    });
   }
 
   res.json({ message: 'Contest deleted successfully' });

@@ -18,7 +18,9 @@ const Topbar = () => {
   const router = useRouter();
   const pathname = usePathname();
   const isHome = pathname === '/';
-  const { data: contest, isLoading } = useContest(FEATURED_CONTEST_ID);
+  const { data: contest, isLoading } = useContest(FEATURED_CONTEST_ID, {
+    enabled: Boolean(session && isHome),
+  });
   const { mutateAsync: joinContest, isPending: isJoining } = useJoinContest();
 
   const [dismissed, setDismissed] = useState(false);

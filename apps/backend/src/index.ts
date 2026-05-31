@@ -5,9 +5,13 @@ import { toNodeHandler } from 'better-auth/node';
 import { auth } from './utils/auth';
 import cors from 'cors';
 import { origins } from './utils/origins';
+import { globalLimiter } from './middleware/rateLimiter';
 const port = process.env.PORT || 3000;
 
 const app = express();
+
+// Trust proxy for correct rate limiting when behind reverse proxies (like Render, Vercel, Cloudflare, etc.)
+app.set('trust proxy', 1);
 
 const corsOptions = {
   origin: origins,
@@ -27,7 +31,7 @@ app.use(cors(corsOptions));
 app.all('/api/auth/*splat', toNodeHandler(auth));
 
 app.use(express.json());
-app.use('/api/v1', router);
+app.use('/api/v1', globalLimiter, router);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to the XContext API' });

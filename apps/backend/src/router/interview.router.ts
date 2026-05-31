@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '@/middleware/authentication';
+import { aiLimiter } from '@/middleware/rateLimiter';
 import {
   addInterviewQuestion,
   answerInterviewQuestion,
@@ -25,11 +26,11 @@ router.get('/:id', getInterviewById);
 router.put('/:id', updateInterview);
 router.delete('/:id', deleteInterview);
 
-router.post('/:id/generate-question', generateInterviewQuestion);
+router.post('/:id/generate-question', aiLimiter, generateInterviewQuestion);
 router.post('/:id/questions', addInterviewQuestion);
 router.put('/:id/questions/:questionAnswerId/answer', answerInterviewQuestion);
 
 router.get('/:id/rating', getInterviewRating);
-router.post('/:id/rating/generate', generateInterviewRating);
+router.post('/:id/rating/generate', aiLimiter, generateInterviewRating);
 
 export default router;

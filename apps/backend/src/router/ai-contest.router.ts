@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '@/middleware/authentication';
+import { aiLimiter } from '@/middleware/rateLimiter';
 import {
   createAiContestController,
   getAiContestNextController,
@@ -9,6 +10,7 @@ import {
 const router = Router();
 
 router.use(authenticate);
+router.use(aiLimiter);
 router.post('/next', getAiContestNextController);
 router.post('/create', createAiContestController);
 router.post('/preview', previewAiContestController);

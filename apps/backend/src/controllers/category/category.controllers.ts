@@ -4,6 +4,7 @@ import { category } from '@/db/schema';
 import asyncHandler from '@/utils/asyncHandler';
 import type { AuthenticatedRequest } from '@/middleware/authentication';
 import { createCategorySchema, slugify } from './validation';
+import { invalidateCache, CACHE_KEYS } from '@/middleware/cache';
 
 export const listCategories = asyncHandler(async (_req: Request, res: Response) => {
   const rows = await db.query.category.findMany({
@@ -43,6 +44,12 @@ export const createCategory = asyncHandler(async (req: Request, res: Response) =
       slug,
     })
     .returning();
+
+  if (created) {
+    invalidateCache(CACHE_KEYS.categories).catch((err) => {
+      console.error('[Redis Cache] Invalidation error on createCategory:', err);
+    });
+  }
 
   res.status(201).json(created);
 });

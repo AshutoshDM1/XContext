@@ -2,6 +2,7 @@
 import * as React from 'react';
 import Section from '@/shared/Section/Section';
 import Loader from '@/shared/Loader/Loader';
+import Error from '@/shared/Error/Error';
 import { type Contest } from '@/store/contests';
 import { CreateContestDialog } from './components/CreateContestDialog';
 import { usePublicContests, useUserContests } from '@/hooks/useContests';
@@ -59,8 +60,20 @@ export function ContestSection({
 }
 
 const Contests = () => {
-  const { data: userContests, isLoading: isUserContestsLoading } = useUserContests();
-  const { data: publicContests, isLoading: isPublicContestsLoading } = usePublicContests();
+  const {
+    data: userContests,
+    isLoading: isUserContestsLoading,
+    isError: isUserContestsError,
+    error: userContestsError,
+    refetch: refetchUserContests,
+  } = useUserContests();
+  const {
+    data: publicContests,
+    isLoading: isPublicContestsLoading,
+    isError: isPublicContestsError,
+    error: publicContestsError,
+    refetch: refetchPublicContests,
+  } = usePublicContests();
   const isAdmin = useIsAdmin();
   const { data: categories } = useCategories();
   const [selectedCategoryIds, setSelectedCategoryIds] = React.useState<number[]>([]);
@@ -75,6 +88,21 @@ const Contests = () => {
       return selectedCategoryIds.some((id) => ids.includes(id));
     });
   };
+
+  if (isUserContestsError || isPublicContestsError) {
+    const activeError = userContestsError || publicContestsError;
+    return (
+      <Section className="py-6">
+        <Error
+          error={activeError}
+          retry={() => {
+            refetchUserContests();
+            refetchPublicContests();
+          }}
+        />
+      </Section>
+    );
+  }
 
   if (isUserContestsLoading || isPublicContestsLoading || !userContests || !publicContests) {
     return (
