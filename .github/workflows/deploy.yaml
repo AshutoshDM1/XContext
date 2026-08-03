@@ -29,11 +29,15 @@ jobs:
           script: |
             set -euo pipefail
 
-            # GitHub Action uses a non-login shell; ensure Bun is on PATH.
+            # Load nvm if present (so bun & pm2 are added to PATH)
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
+
+            # Ensure Bun is on PATH
             export PATH="$HOME/.bun/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
             if ! command -v bun >/dev/null 2>&1; then
-              echo "bun not found on PATH. HOME=$HOME"
-              ls -la "$HOME/.bun/bin" || true
+              echo "bun not found on PATH. HOME=$HOME, PATH=$PATH"
               exit 127
             fi
             bun -v
