@@ -62,5 +62,5 @@ jobs:
             fi
             pm2 -v
 
-            pm2 restart 10
+            pm2 restart xcontext-backend --update-env
             pm2 save

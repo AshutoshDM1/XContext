@@ -3,6 +3,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import db from './db';
 import { origins } from './origins';
 
+const frontendUrl = process.env.FRONTEND_URL || 'https://xcontext.elitedev.space';
 const isProduction = process.env.BETTER_AUTH_URL === 'https://xcontext-backend.elitedev.space';
 
 export const auth = betterAuth({
@@ -57,7 +58,7 @@ export const auth = betterAuth({
     return {
       status: 'error',
       message: error.message,
-      redirect: process.env.FRONTEND_URL,
+      redirect: `${frontendUrl}/login?error=${encodeURIComponent(error.message || 'auth_error')}`,
     };
   },
   database: drizzleAdapter(db, {

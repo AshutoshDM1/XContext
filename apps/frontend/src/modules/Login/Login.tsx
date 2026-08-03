@@ -114,6 +114,7 @@ function LoginForm() {
                   setIsLoading(true);
                   signIn.social({
                     provider: 'google',
+                    callbackURL: window.location.origin,
                   });
                 }}
               >
